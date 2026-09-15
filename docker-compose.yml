@@ -1,0 +1,57 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    container_name: frontend
+    restart: unless-stopped
+
+  db_aforo:
+    image: postgres:16-alpine
+    container_name: db_aforo
+    environment:
+      POSTGRES_DB: db_aforo
+      POSTGRES_USER: aforo
+      POSTGRES_PASSWORD: aforo_dev
+    volumes:
+      - aforo_data:/var/lib/postgresql/data
+      - ./backend/aforo/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aforo -d db_aforo"]
+      interval: 5s
+      retries: 10
+
+  db_ventas:
+    image: postgres:16-alpine
+    container_name: db_ventas
+    environment:
+      POSTGRES_DB: db_ventas
+      POSTGRES_USER: ventas
+      POSTGRES_PASSWORD: ventas_dev
+    volumes:
+      - ventas_data:/var/lib/postgresql/data
+      - ./backend/venta-entradas/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ventas -d db_ventas"]
+      interval: 5s
+      retries: 10
+
+  aforo:
+    build: ./backend/aforo
+    container_name: aforo
+    command: ["tail", "-f", "/dev/null"]
+    depends_on:
+      db_aforo:
+        condition: service_healthy
+
+  venta-entradas:
+    build: ./backend/venta-entradas
+    container_name: venta-entradas
+    command: ["tail", "-f", "/dev/null"]
+    depends_on:
+      db_ventas:
+        condition: service_healthy
+
+volumes:
+  aforo_data:
+  ventas_data:
