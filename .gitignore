@@ -1,0 +1,50 @@
+# Impeccable — diseño local
+PRODUCT.md
+DESIGN.md
+.impeccable/
+
+# Python (backend: FastAPI / gRPC)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / herramientas JS
+node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# Docker / datos locales
+*.pid
+docker-compose.override.yml
+.volumes/
+pgdata/
+
+# Entornos e secretos locales (no subir credenciales reales)
+.env
+.env.*
+!.env.example
+
+# Editores y SO
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Logs y temporales
+*.log
+logs/
+tmp/
+*.tmp

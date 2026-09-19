@@ -6,7 +6,10 @@ const views = {};
 
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t) => {
-    t.classList.toggle('is-active', t.dataset.tab === name);
+    const active = t.dataset.tab === name;
+    t.classList.toggle('is-active', active);
+    if (active) t.setAttribute('aria-current', 'page');
+    else t.removeAttribute('aria-current');
   });
   Object.entries(views).forEach(([key, view]) => {
     document.getElementById(`view-${key}`).classList.toggle('is-hidden', key !== name);
