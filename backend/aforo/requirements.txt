@@ -3,3 +3,5 @@ grpcio-tools
 sqlalchemy
 psycopg2-binary
 pydantic
+uvicorn[standard]
+pydantic[email]
