@@ -32,19 +32,26 @@ def get_db():
         db.close()
 
 # ----------- ESQUEMAS (sirve para validar los tipos que se usan :v) -------------
+
+# ----------- ASISTENTES -----------
 class AsistenteCreate(BaseModel):
     rut: str = Field(..., max_length=20, description="RUT chileno con guion")
     nombre_completo: str = Field(..., max_length=200)
     email: EmailStr # Valida automáticamente que tenga formato de correo (@)
 
-class AsistenteResponse(AsistenteCreate):
-    asistente_id: UUID
+class AsistenteUpdate(BaseModel):
+    nombre_completo: str = Field(..., max_length=200)
+    email: EmailStr # Valida automáticamente que tenga formato de correo (@)
+
+class AsistenteResponse(AsistenteUpdate):
     fecha_registro: datetime
 
     class Config:
         # Permite que Pydantic lea directamente el objeto de SQLAlchemy
         from_attributes = True 
 
+
+# ----------- VENTAS -----------
 class VentaCreate(BaseModel):
     asistente_id: UUID
     id_seccion_aforo: UUID
@@ -60,8 +67,8 @@ class VentaResponse(VentaCreate):
     class Config:
         from_attributes = True
 
-# ----------- ENDPOINTS -------------
 
+# ----------- ENDPOINTS -------------
 @app.get("/api/health")
 def health():
     """
@@ -123,22 +130,6 @@ def obtener_asistente_uuid(asistente_id: UUID, db: Session = Depends(get_db)):
 
     return asistente_id
 
-@app.get("/api/asistentes/rut/{rut}", response_model=AsistenteResponse)
-def obtener_asistente_por_rut(rut: str, db: Session = Depends(get_db)):
-    """
-    Obtener el asistente a partir de su RUT.
-    """
-
-    asistente = db.query(models.Asistente).filter(models.Asistente.rut == rut).first()
-
-    if not asistente:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No se encontró a un asistente con el RUT: {rut}"
-        )
-
-    return asistente
-
 @app.delete("/api/asistentes/{asistente_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_asistente(asistente_id: UUID, db: Session = Depends(get_db)):
     """
@@ -159,12 +150,12 @@ def eliminar_asistente(asistente_id: UUID, db: Session = Depends(get_db)):
     return None
 
 @app.put("/api/asistentes/{asistente_id}", response_model=AsistenteResponse)
-def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteCreate, db: Session = Depends(get_db)):
+def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteUpdate, db: Session = Depends(get_db)):
     """
     Actualiza los datos de un asistente.
     """
 
-    asistente_db = db.query(models.Asistente).filter(models.Asistente.asistente_id == asistente_id)
+    asistente_db = db.query(models.Asistente).filter(models.Asistente.asistente_id == asistente_id).first()
 
     if not asistente_db:
         raise HTTPException(
@@ -172,7 +163,6 @@ def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteCreate
             detail=f"El asistente con UUID {asistente_id} no existe."
         )
 
-    asistente_db.rut = datos_actualizados.rut
     asistente_db.nombre_completo = datos_actualizados.nombre_completo
     asistente_db.email = datos_actualizados.email
 
@@ -180,3 +170,21 @@ def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteCreate
     db.refresh(asistente_db)
 
     return asistente_db
+
+
+
+@app.get("/api/asistentes/rut/{rut}", response_model=AsistenteResponse)
+def obtener_asistente_por_rut(rut: str, db: Session = Depends(get_db)):
+    """
+    Obtener el asistente a partir de su RUT.
+    """
+
+    asistente = db.query(models.Asistente).filter(models.Asistente.rut == rut).first()
+
+    if not asistente:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No se encontró a un asistente con el RUT: {rut}"
+        )
+
+    return asistente
