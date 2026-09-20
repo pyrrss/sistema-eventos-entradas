@@ -39,7 +39,12 @@ services:
   aforo:
     build: ./backend/aforo
     container_name: aforo
-    command: ["tail", "-f", "/dev/null"]
+    ports:
+      - "8001:8001"  # <--- Expone el puerto a tu PC
+    # Ejecuta Uvicorn al iniciar. "--host 0.0.0.0" es vital en Docker para que acepte conexiones desde afuera.
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+    volumes:
+      - ./backend/aforo:/app  # Opcional: Para que se actualice el código en vivo sin reconstruir
     depends_on:
       db_aforo:
         condition: service_healthy
@@ -47,7 +52,12 @@ services:
   venta-entradas:
     build: ./backend/venta-entradas
     container_name: venta-entradas
-    command: ["tail", "-f", "/dev/null"]
+    ports:
+      - "8002:8002"  # <--- Expone el puerto a tu PC
+    # Ejecuta Uvicorn en el puerto 8002
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"]
+    volumes:
+      - ./backend/venta-entradas:/app  # Opcional: Para Hot-Reload
     depends_on:
       db_ventas:
         condition: service_healthy
