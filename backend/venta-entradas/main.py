@@ -43,7 +43,11 @@ class AsistenteUpdate(BaseModel):
     nombre_completo: str = Field(..., max_length=200)
     email: EmailStr # Valida automáticamente que tenga formato de correo (@)
 
-class AsistenteResponse(AsistenteUpdate):
+class AsistenteResponse(BaseModel):
+    asistente_id: UUID
+    rut: str
+    nombre_completo: str
+    email: EmailStr
     fecha_registro: datetime
 
     class Config:
@@ -108,10 +112,7 @@ def obtener_asistentes(db: Session = Depends(get_db)):
     asistentes = db.query(models.Asistente).offset(0).limit(50).all()
 
     if not asistentes:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="No existen asistentes."
-        )
+        return []
 
     return asistentes
 
@@ -128,7 +129,7 @@ def obtener_asistente_uuid(asistente_id: UUID, db: Session = Depends(get_db)):
             detail="El asistente no existe."
         )
 
-    return asistente_id
+    return asistente
 
 @app.delete("/api/asistentes/{asistente_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_asistente(asistente_id: UUID, db: Session = Depends(get_db)):

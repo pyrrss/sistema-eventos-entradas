@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'http://localhost:8002';
 
 export class APIError extends Error {
     constructor(message, status, data) {
@@ -39,19 +39,20 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+    health: () => request('/api/health'),
     asistentes: {
-        list: () => request('/asistentes'),
-        get: (id) => request(`/asistentes/${id}`),
-        create: (payload) => request('/asistentes', { method: 'POST', body: JSON.stringify(payload) }),
+        list: () => request('/api/asistentes'),
+        get: (id) => request(`/api/asistentes/${id}`),
+        create: (payload) => request('/api/asistentes', { method: 'POST', body: JSON.stringify(payload) }),
     },
     ventas: {
-        list: () => request('/ventas'),
-        get: (id) => request(`/ventas/${id}`),
-        create: (payload) => request('/ventas', { method: 'POST', body: JSON.stringify(payload) }),
-        revert: (id) => request(`/ventas/${id}`, { method: 'DELETE' }),
+        list: () => request('/api/ventas'),
+        get: (id) => request(`/api/ventas/${id}`),
+        create: (payload) => request('/api/ventas', { method: 'POST', body: JSON.stringify(payload) }),
+        revert: (id) => request(`/api/ventas/${id}`, { method: 'DELETE' }),
     },
     catalogo: {
-        eventos: () => request('/eventos'),
-        secciones: (eventoId) => request(`/eventos/${eventoId}/secciones`),
+        eventos: () => request('/api/eventos'),
+        secciones: (eventoId) => request(`/api/eventos/${eventoId}/secciones`),
     },
 };

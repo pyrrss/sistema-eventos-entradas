@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { esc, toast, openModal, closeModal, confirmDialog, dlNode, setApiStatus, icon } from './ui.js';
+import { esc, toast, openModal, closeModal, confirmDialog, dlNode, icon } from './ui.js';
 
 const TEMPLATE = `
   <div class="view-head">
@@ -225,7 +225,6 @@ export function initVentas(container) {
     async function cargarEventos() {
       try {
         const eventos = await api.catalogo.eventos();
-        setApiStatus(true);
         eventoSel.innerHTML =
           '<option value="">Selecciona un evento</option>' +
           (eventos || []).map((e) => `<option value="${esc(e.id)}">${esc(e.nombre)}</option>`).join('');
@@ -233,7 +232,6 @@ export function initVentas(container) {
           eventoSel.innerHTML = '<option value="">No hay eventos en Aforo</option>';
         }
       } catch (err) {
-        setApiStatus(false);
         eventoSel.innerHTML = '<option value="">No se pudo consultar Aforo</option>';
         showError(err.message);
       }
@@ -269,11 +267,9 @@ export function initVentas(container) {
       sectores.innerHTML = '<p class="station__hint">Cargando secciones…</p>';
       try {
         secciones = (await api.catalogo.secciones(id)) || [];
-        setApiStatus(true);
         renderSectores();
       } catch (err) {
         secciones = [];
-        setApiStatus(false);
         sectores.innerHTML = '';
         sectores.appendChild(sectorasErrorNode(err.message));
         seccionHint.textContent = 'Aforo no responde';
@@ -428,12 +424,10 @@ export function initVentas(container) {
           seccion_id: Number(seleccion.id),
           cantidad: qty,
         });
-        setApiStatus(true);
         closeModal();
         toast(`${plural(qty, 'Entrada vendida', 'Entradas vendidas')} — ${qty} × ${seleccion.nombre}`);
         await refresh(creado?.id);
       } catch (err) {
-        setApiStatus(false);
         showError(err.message);
         toast(err.message, 'error');
       } finally {
@@ -485,11 +479,9 @@ export function initVentas(container) {
       if (!ok) return;
       try {
         await api.ventas.revert(Number(id));
-        setApiStatus(true);
         toast('Venta revertida — el aforo se liberó');
         await refresh();
       } catch (err) {
-        setApiStatus(false);
         toast(err.message, 'error');
       }
     }
@@ -503,7 +495,6 @@ export function initVentas(container) {
     countStamp.textContent = '';
     try {
       const ventas = await api.ventas.list();
-      setApiStatus(true);
       lastVentas = ventas || [];
       if (lastVentas.length === 0) {
         tableWrap.classList.add('is-hidden');
@@ -542,7 +533,6 @@ export function initVentas(container) {
         })
         .join('');
     } catch (err) {
-      setApiStatus(false);
       tableWrap.classList.add('is-hidden');
       stateBox.classList.remove('is-hidden');
       stateBox.innerHTML = `

@@ -1,3 +1,5 @@
+import { api } from './api.js';
+
 const modalRoot = document.getElementById('app-modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
@@ -8,6 +10,25 @@ export function initUi() {
   modalRoot.addEventListener('click', (e) => {
     if (e.target === modalRoot) closeModal();
   });
+  const pill = document.querySelector('[data-role="api-pill"]');
+  if (pill) pill.addEventListener('click', checkApi);
+}
+
+async function checkApi() {
+  const pill = document.querySelector('[data-role="api-pill"]');
+  const text = pill.querySelector('.api-pill__text');
+  pill.disabled = true;
+  text.textContent = 'Verificando…';
+  try {
+    await api.health();
+    setApiStatus(true);
+    toast('La API de venta está en línea');
+  } catch (err) {
+    setApiStatus(false);
+    toast(err.message, 'error');
+  } finally {
+    pill.disabled = false;
+  }
 }
 
 export function toast(message, type = 'success') {
@@ -99,11 +120,12 @@ export function dlNode(entries) {
 export function setApiStatus(online) {
   const pill = document.querySelector('[data-role="api-pill"]');
   if (!pill) return;
+  pill.classList.remove('is-unknown');
   pill.classList.toggle('is-offline', !online);
   pill.querySelector('.api-pill__text').textContent = online ? 'API en línea' : 'API sin respuesta';
   pill.title = online
-    ? 'Servicio de venta (REST) validado contra Aforo (gRPC)'
-    : 'No se pudo contactar el servicio de venta';
+    ? 'Última verificación: la API de venta respondió correctamente'
+    : 'Última verificación: no se pudo contactar la API de venta. Clic para reintentar';
 }
 
 export function icon(name, size = 15) {

@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { esc, toast, openModal, closeModal, dlNode, setApiStatus, icon } from './ui.js';
+import { esc, toast, openModal, closeModal, dlNode, icon } from './ui.js';
 
 const TEMPLATE = `
   <div class="view-head">
@@ -27,6 +27,7 @@ const TEMPLATE = `
           <tr>
             <th scope="col">ID</th>
             <th scope="col">Nombre</th>
+            <th scope="col">RUT</th>
             <th scope="col">Correo</th>
             <th scope="col"><span class="sr-label">Acciones</span></th>
           </tr>
@@ -53,14 +54,23 @@ function initials(nombre) {
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
 }
 
+function shortId(id) {
+  return `#${String(id || '?').slice(0, 8)}`;
+}
+
 function buildForm() {
   const form = document.createElement('form');
   form.className = 'sale';
   form.noValidate = true;
   form.innerHTML = `
     <label class="field" style="margin-bottom:12px">
+      <span>RUT</span>
+      <input class="input" name="rut" required autocomplete="off" placeholder="Ej. 12.345.678-9" />
+      <span class="field__error">${icon('i-alert', 13)} Ingresa un RUT válido (ej. 12345678-9).</span>
+    </label>
+    <label class="field" style="margin-bottom:12px">
       <span>Nombre completo</span>
-      <input class="input" name="nombre" required autocomplete="name" placeholder="Ej. Ana Torres Salgado" />
+      <input class="input" name="nombre_completo" required autocomplete="name" placeholder="Ej. Ana Torres Salgado" />
       <span class="field__error">${icon('i-alert', 13)} Escribe el nombre del asistente.</span>
     </label>
     <label class="field">
@@ -93,29 +103,29 @@ export function initAsistentes(container) {
     const form = buildForm();
     openModal('Nuevo asistente', form);
     form.querySelector('[data-role="f:cancel"]').addEventListener('click', closeModal);
-    form.querySelector('[name="nombre"]').focus();
+    form.querySelector('[name="rut"]').focus();
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nombre = form.nombre.value.trim();
+      const rut = form.rut.value.trim();
+      const nombreCompleto = form.nombre_completo.value.trim();
       const email = form.email.value.trim();
+      const rutOk = /^\d{1,2}(\.\d{3}){1,2}-[\dkK]$|^\d{7,8}-[\dkK]$/i.test(rut);
       const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-      const fields = { nombre: form.querySelector('[name="nombre"]'), email: form.querySelector('[name="email"]') };
-      fields.nombre.closest('.field').classList.toggle('has-error', !nombre);
-      fields.email.closest('.field').classList.toggle('has-error', !emailOk);
-      if (!nombre || !emailOk) return;
+      form.rut.closest('.field').classList.toggle('has-error', !rutOk);
+      form.nombre_completo.closest('.field').classList.toggle('has-error', !nombreCompleto);
+      form.email.closest('.field').classList.toggle('has-error', !emailOk);
+      if (!rutOk || !nombreCompleto || !emailOk) return;
 
       const submit = form.querySelector('button[type="submit"]');
       submit.disabled = true;
       try {
-        await api.asistentes.create({ nombre, email });
-        setApiStatus(true);
+        await api.asistentes.create({ rut, nombre_completo: nombreCompleto, email });
         closeModal();
-        toast(`${nombre} quedó registrado`);
+        toast(`${nombreCompleto} quedó registrado`);
         await refresh();
       } catch (err) {
-        setApiStatus(false);
         toast(err.message, 'error');
       } finally {
         submit.disabled = false;
@@ -125,18 +135,20 @@ export function initAsistentes(container) {
 
   tbody.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-action="ver"]');
-    if (btn) showDetail(Number(btn.dataset.id));
+    if (btn) showDetail(btn.dataset.id);
   });
 
   async function showDetail(id) {
     try {
       const a = await api.asistentes.get(id);
       openModal(
-        `Asistente #${a.id}`,
+        `Asistente ${shortId(a.asistente_id)}`,
         dlNode([
-          ['Nombre', a.nombre],
+          ['ID', a.asistente_id],
+          ['RUT', a.rut],
+          ['Nombre', a.nombre_completo],
           ['Correo', a.email],
-          ['Registrado', fmtDate(a.created_at)],
+          ['Registrado', fmtDate(a.fecha_registro)],
         ]),
       );
     } catch (err) {
@@ -160,12 +172,12 @@ export function initAsistentes(container) {
     tbody.innerHTML = `
       <tr class="skeleton-row"><td><span class="skeleton" style="width:20%;display:block"></span></td>
       <td><span class="skeleton" style="width:55%;display:block"></span></td>
+      <td><span class="skeleton" style="width:40%;display:block"></span></td>
       <td><span class="skeleton" style="width:70%;display:block"></span></td>
       <td><span class="skeleton" style="width:30%;display:block"></span></td></tr>
     `;
     try {
       const asistentes = await api.asistentes.list();
-      setApiStatus(true);
       if (!asistentes || asistentes.length === 0) {
         tableWrap.classList.add('is-hidden');
         stateBox.classList.remove('is-hidden');
@@ -178,17 +190,18 @@ export function initAsistentes(container) {
         .map(
           (a) => `
             <tr>
-              <td class="id-cell" data-label="ID">#${esc(a.id)}</td>
+              <td class="id-cell" data-label="ID">${esc(shortId(a.asistente_id))}</td>
               <td data-label="Nombre">
                 <span class="name-cell">
-                  <span class="avatar" aria-hidden="true">${esc(initials(a.nombre))}</span>
-                  <span class="cell-strong">${esc(a.nombre)}</span>
+                  <span class="avatar" aria-hidden="true">${esc(initials(a.nombre_completo))}</span>
+                  <span class="cell-strong">${esc(a.nombre_completo)}</span>
                 </span>
               </td>
+              <td data-label="RUT">${esc(a.rut)}</td>
               <td data-label="Correo">${esc(a.email)}</td>
               <td class="cell-actions">
                 <div class="row-actions">
-                  <button class="icon-btn" data-action="ver" data-id="${esc(a.id)}" type="button" title="Ver detalle" aria-label="Ver asistente ${esc(a.id)}">${icon('i-eye', 16)}</button>
+                  <button class="icon-btn" data-action="ver" data-id="${esc(a.asistente_id)}" type="button" title="Ver detalle" aria-label="Ver asistente ${esc(a.nombre_completo)}">${icon('i-eye', 16)}</button>
                 </div>
               </td>
             </tr>
@@ -196,7 +209,6 @@ export function initAsistentes(container) {
         )
         .join('');
     } catch (err) {
-      setApiStatus(false);
       tableWrap.classList.add('is-hidden');
       stateBox.classList.remove('is-hidden');
       stateBox.innerHTML = `

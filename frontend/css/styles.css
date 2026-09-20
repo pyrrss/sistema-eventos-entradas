@@ -222,6 +222,25 @@ body {
   box-shadow: 0 0 0 3px var(--valid-bg);
 }
 
+button.api-pill {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button.api-pill:hover:not(:disabled) {
+  border-color: var(--ink-soft);
+}
+
+button.api-pill:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.api-pill.is-unknown .api-pill__dot {
+  background: var(--ink-soft);
+  box-shadow: 0 0 0 3px var(--seam);
+}
+
 .api-pill.is-offline .api-pill__dot {
   background: var(--reverted);
   box-shadow: 0 0 0 3px var(--reverted-bg);
