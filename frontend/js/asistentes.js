@@ -1,79 +1,131 @@
 import { api } from './api.js';
-import { esc, toast, openModal, dlNode } from './ui.js';
+import { esc, toast, openModal, closeModal, dlNode, setApiStatus, icon } from './ui.js';
 
 const TEMPLATE = `
-  <div class="view-header">
-    <h2>Asistentes</h2>
-    <button class="btn btn--primary" data-role="asistentes:new">Nuevo asistente</button>
+  <div class="view-head">
+    <div class="view-head__titles">
+      <h2>Asistentes</h2>
+      <span class="count-stamp" data-role="asistentes:count"></span>
+    </div>
+    <div class="view-head__actions">
+      <button class="btn btn--primary" data-role="asistentes:new" type="button">
+        ${icon('i-user', 14)} Nuevo asistente
+      </button>
+    </div>
   </div>
-  <form class="card form is-hidden" data-role="asistentes:form">
-    <div class="form__grid">
-      <label>
-        Nombre
-        <input name="nombre" required autocomplete="off" />
-      </label>
-      <label>
-        Email
-        <input name="email" type="email" required autocomplete="off" />
-      </label>
-    </div>
-    <div class="form__actions">
-      <button type="button" class="btn" data-role="asistentes:form-cancel">Cancelar</button>
-      <button type="submit" class="btn btn--primary">Crear asistente</button>
-    </div>
-  </form>
+
   <div class="card">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nombre</th>
-          <th>Email</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody data-role="asistentes:tbody"></tbody>
-    </table>
+    <div class="card__band">
+      <span class="card__band-title">${icon('i-users', 15)} Registro de asistentes</span>
+      <span class="station__hint">Cada asistente puede adquirir entradas en cualquier evento</span>
+    </div>
+    <div class="perfo"></div>
+    <div data-role="asistentes:state"></div>
+    <div class="table-wrap" data-role="asistentes:table-wrap">
+      <table class="table table--two">
+        <thead>
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Correo</th>
+            <th scope="col"><span class="sr-label">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody data-role="asistentes:tbody"></tbody>
+      </table>
+    </div>
   </div>
 `;
+
+const EMPTY_HTML = `
+  <div class="empty">
+    <svg class="empty__art" width="56" height="56" viewBox="0 0 24 24" aria-hidden="true">
+      <use href="#i-users" />
+    </svg>
+    <h3 class="empty__title">Nadie en la lista todavía</h3>
+    <p class="empty__text">Registra tu primer asistente para poder venderle entradas desde la ventanilla.</p>
+    <button class="btn btn--primary" type="button" data-role="asistentes:empty-new">Nuevo asistente</button>
+  </div>
+`;
+
+function initials(nombre) {
+  const parts = String(nombre || '?').trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
+}
+
+function buildForm() {
+  const form = document.createElement('form');
+  form.className = 'sale';
+  form.noValidate = true;
+  form.innerHTML = `
+    <label class="field" style="margin-bottom:12px">
+      <span>Nombre completo</span>
+      <input class="input" name="nombre" required autocomplete="name" placeholder="Ej. Ana Torres Salgado" />
+      <span class="field__error">${icon('i-alert', 13)} Escribe el nombre del asistente.</span>
+    </label>
+    <label class="field">
+      <span>Correo electrónico</span>
+      <input class="input" name="email" type="email" required autocomplete="email" placeholder="ana@ejemplo.com" />
+      <span class="field__error">Escribe un correo válido (ej. ana@ejemplo.com).</span>
+    </label>
+    <div class="form__actions" style="margin-top:16px">
+      <button type="button" class="btn btn--quiet" data-role="f:cancel">Cancelar</button>
+      <button type="submit" class="btn btn--primary">${icon('i-check', 14)}&nbsp;Crear asistente</button>
+    </div>
+  `;
+  return form;
+}
 
 export function initAsistentes(container) {
   container.innerHTML = TEMPLATE;
 
-  const form = container.querySelector('[data-role="asistentes:form"]');
   const tbody = container.querySelector('[data-role="asistentes:tbody"]');
+  const stateBox = container.querySelector('[data-role="asistentes:state"]');
+  const tableWrap = container.querySelector('[data-role="asistentes:table-wrap"]');
+  const countStamp = container.querySelector('[data-role="asistentes:count"]');
 
-  container.querySelector('[data-role="asistentes:new"]').addEventListener('click', () => {
-    form.classList.remove('is-hidden');
+  container.querySelector('[data-role="asistentes:new"]').addEventListener('click', openForm);
+  stateBox.addEventListener('click', (e) => {
+    if (e.target.closest('[data-role="asistentes:empty-new"]')) openForm();
+  });
+
+  function openForm() {
+    const form = buildForm();
+    openModal('Nuevo asistente', form);
+    form.querySelector('[data-role="f:cancel"]').addEventListener('click', closeModal);
     form.querySelector('[name="nombre"]').focus();
-  });
 
-  container
-    .querySelector('[data-role="asistentes:form-cancel"]')
-    .addEventListener('click', () => {
-      form.classList.add('is-hidden');
-      form.reset();
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nombre = form.nombre.value.trim();
+      const email = form.email.value.trim();
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+      const fields = { nombre: form.querySelector('[name="nombre"]'), email: form.querySelector('[name="email"]') };
+      fields.nombre.closest('.field').classList.toggle('has-error', !nombre);
+      fields.email.closest('.field').classList.toggle('has-error', !emailOk);
+      if (!nombre || !emailOk) return;
+
+      const submit = form.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      try {
+        await api.asistentes.create({ nombre, email });
+        setApiStatus(true);
+        closeModal();
+        toast(`${nombre} quedó registrado`);
+        await refresh();
+      } catch (err) {
+        setApiStatus(false);
+        toast(err.message, 'error');
+      } finally {
+        submit.disabled = false;
+      }
     });
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const payload = Object.fromEntries(new FormData(form));
-    try {
-      await api.asistentes.create(payload);
-      form.classList.add('is-hidden');
-      form.reset();
-      toast('Asistente creado correctamente');
-      await refresh();
-    } catch (err) {
-      toast(err.message, 'error');
-    }
-  });
+  }
 
   tbody.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-action]');
-    if (!btn) return;
-    const { id, action } = btn.dataset;
-    if (action === 'ver') showDetail(Number(id));
+    const btn = e.target.closest('button[data-action="ver"]');
+    if (btn) showDetail(Number(btn.dataset.id));
   });
 
   async function showDetail(id) {
@@ -82,10 +134,9 @@ export function initAsistentes(container) {
       openModal(
         `Asistente #${a.id}`,
         dlNode([
-          ['ID', a.id],
           ['Nombre', a.nombre],
-          ['Email', a.email],
-          ['Creado', a.created_at ?? '—'],
+          ['Correo', a.email],
+          ['Registrado', fmtDate(a.created_at)],
         ]),
       );
     } catch (err) {
@@ -93,24 +144,51 @@ export function initAsistentes(container) {
     }
   }
 
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+    } catch {
+      return iso;
+    }
+  }
+
   async function refresh() {
-    tbody.innerHTML = '<tr><td class="table__empty" colspan="4">Cargando…</td></tr>';
+    stateBox.innerHTML = '';
+    stateBox.classList.add('is-hidden');
+    tableWrap.classList.remove('is-hidden');
+    tbody.innerHTML = `
+      <tr class="skeleton-row"><td><span class="skeleton" style="width:20%;display:block"></span></td>
+      <td><span class="skeleton" style="width:55%;display:block"></span></td>
+      <td><span class="skeleton" style="width:70%;display:block"></span></td>
+      <td><span class="skeleton" style="width:30%;display:block"></span></td></tr>
+    `;
     try {
       const asistentes = await api.asistentes.list();
+      setApiStatus(true);
       if (!asistentes || asistentes.length === 0) {
-        tbody.innerHTML = '<tr><td class="table__empty" colspan="4">No hay asistentes registrados.</td></tr>';
+        tableWrap.classList.add('is-hidden');
+        stateBox.classList.remove('is-hidden');
+        stateBox.innerHTML = EMPTY_HTML;
+        countStamp.textContent = '';
         return;
       }
+      countStamp.textContent = `${asistentes.length} en la lista`;
       tbody.innerHTML = asistentes
         .map(
           (a) => `
             <tr>
-              <td>${esc(a.id)}</td>
-              <td>${esc(a.nombre)}</td>
-              <td>${esc(a.email)}</td>
-              <td>
-                <div class="table__actions">
-                  <button class="btn btn--small" data-action="ver" data-id="${esc(a.id)}">Ver</button>
+              <td class="id-cell" data-label="ID">#${esc(a.id)}</td>
+              <td data-label="Nombre">
+                <span class="name-cell">
+                  <span class="avatar" aria-hidden="true">${esc(initials(a.nombre))}</span>
+                  <span class="cell-strong">${esc(a.nombre)}</span>
+                </span>
+              </td>
+              <td data-label="Correo">${esc(a.email)}</td>
+              <td class="cell-actions">
+                <div class="row-actions">
+                  <button class="icon-btn" data-action="ver" data-id="${esc(a.id)}" type="button" title="Ver detalle" aria-label="Ver asistente ${esc(a.id)}">${icon('i-eye', 16)}</button>
                 </div>
               </td>
             </tr>
@@ -118,8 +196,18 @@ export function initAsistentes(container) {
         )
         .join('');
     } catch (err) {
-      tbody.innerHTML = '<tr><td class="table__empty" colspan="4">No se pudo cargar la lista de asistentes.</td></tr>';
-      toast(err.message, 'error');
+      setApiStatus(false);
+      tableWrap.classList.add('is-hidden');
+      stateBox.classList.remove('is-hidden');
+      stateBox.innerHTML = `
+        <div class="empty">
+          <span class="stamp stamp--reverted">sin conexión</span>
+          <h3 class="empty__title">El registro no se pudo cargar</h3>
+          <p class="empty__text">${esc(err.message)} Verifica el servicio de venta y reintenta.</p>
+          <button class="btn" type="button" data-action="retry">Reintentar</button>
+        </div>
+      `;
+      stateBox.querySelector('[data-action="retry"]').addEventListener('click', refresh);
     }
   }
 

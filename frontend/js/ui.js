@@ -1,37 +1,76 @@
-let toastTimer = 0;
+const modalRoot = document.getElementById('app-modal');
+const modalTitle = document.getElementById('modal-title');
+const modalBody = document.getElementById('modal-body');
+const confirmRoot = document.getElementById('confirm-modal');
 
 export function initUi() {
   document.getElementById('modal-close').addEventListener('click', closeModal);
-  document.getElementById('modal-root').addEventListener('click', (e) => {
-    if (e.target.id === 'modal-root') closeModal();
+  modalRoot.addEventListener('click', (e) => {
+    if (e.target === modalRoot) closeModal();
   });
 }
 
 export function toast(message, type = 'success') {
   const container = document.getElementById('toast-container');
   const el = document.createElement('div');
-  el.className = `toast toast--${type}`;
-  el.textContent = message;
+  el.className = `toast${type === 'error' ? ' toast--error' : ''}`;
+  el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+  const icon = document.createElement('span');
+  icon.className = 'toast__icon';
+  icon.innerHTML = `<svg width="15" height="15" aria-hidden="true"><use href="#${type === 'error' ? 'i-alert' : 'i-check'}"/></svg>`;
+  const text = document.createElement('span');
+  text.textContent = message;
+  el.append(icon, text);
   container.appendChild(el);
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    container.querySelectorAll('.toast').forEach((t) => {
-      t.classList.add('toast--out');
-      setTimeout(() => t.remove(), 300);
-    });
-  }, 3000);
+
+  setTimeout(() => {
+    el.classList.add('toast--out');
+    setTimeout(() => el.remove(), 320);
+  }, 3600);
 }
 
 export function openModal(title, contentNode) {
-  document.getElementById('modal-title').textContent = title;
-  const body = document.getElementById('modal-body');
-  body.innerHTML = '';
-  body.appendChild(contentNode);
-  document.getElementById('modal-root').classList.remove('is-hidden');
+  modalTitle.textContent = title;
+  modalBody.innerHTML = '';
+  modalBody.appendChild(contentNode);
+  if (!modalRoot.open) modalRoot.showModal();
 }
 
 export function closeModal() {
-  document.getElementById('modal-root').classList.add('is-hidden');
+  if (modalRoot.open) modalRoot.close();
+}
+
+export function confirmDialog({ title, message, confirmText }) {
+  return new Promise((resolve) => {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-message').textContent = message;
+    const ok = document.getElementById('confirm-ok');
+    const cancel = document.getElementById('confirm-cancel');
+    ok.textContent = confirmText;
+
+    const cleanup = () => {
+      cancel.removeEventListener('click', onDismiss);
+      ok.removeEventListener('click', onConfirm);
+      confirmRoot.removeEventListener('cancel', onDismiss);
+    };
+    const onDismiss = () => {
+      cleanup();
+      if (confirmRoot.open) confirmRoot.close();
+      resolve(false);
+    };
+    const onConfirm = () => {
+      cleanup();
+      confirmRoot.close();
+      resolve(true);
+    };
+
+    cancel.addEventListener('click', onDismiss);
+    ok.addEventListener('click', onConfirm);
+    confirmRoot.addEventListener('cancel', onDismiss);
+    confirmRoot.showModal();
+    cancel.focus();
+  });
 }
 
 export function esc(value) {
@@ -55,4 +94,18 @@ export function dlNode(entries) {
     dl.appendChild(dd);
   }
   return dl;
+}
+
+export function setApiStatus(online) {
+  const pill = document.querySelector('[data-role="api-pill"]');
+  if (!pill) return;
+  pill.classList.toggle('is-offline', !online);
+  pill.querySelector('.api-pill__text').textContent = online ? 'API en línea' : 'API sin respuesta';
+  pill.title = online
+    ? 'Servicio de venta (REST) validado contra Aforo (gRPC)'
+    : 'No se pudo contactar el servicio de venta';
+}
+
+export function icon(name, size = 15) {
+  return `<svg width="${size}" height="${size}" aria-hidden="true"><use href="#${name}"/></svg>`;
 }

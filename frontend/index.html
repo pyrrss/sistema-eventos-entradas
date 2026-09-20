@@ -3,34 +3,114 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Consola de taquilla: venta de entradas con disponibilidad validada contra Aforo en tiempo real." />
+  <meta name="theme-color" content="#FAF6F0" />
   <title>Sistema de Gestión de Eventos y Entradas</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23C2401F'/%3E%3Cpath d='M6.5 8.5A1.5 1.5 0 0 1 8 7h8a1.5 1.5 0 0 1 1.5 1.5v2A1.5 1.5 0 0 0 16 12h-.5m-7.5-3.5A1.5 1.5 0 0 0 8 10v2a1.5 1.5 0 0 1-1.5 1.5H7m2-5h7m-7 0v0M9.5 13.5 11 15l1.5-1.5L14 15' stroke='%23FAF6F0' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
+  <svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-ticket" viewBox="0 0 24 24">
+      <path d="M3.5 8.2A1.7 1.7 0 0 1 5.2 6.5h13.6a1.7 1.7 0 0 1 1.7 1.7v2.1a1.7 1.7 0 0 0 0 3.4v2.1a1.7 1.7 0 0 1-1.7 1.7H5.2a1.7 1.7 0 0 1-1.7-1.7v-2.1a1.7 1.7 0 0 0 0-3.4V8.2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+      <path d="M10 9.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="0.1 2.6" />
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24">
+      <path d="M12 5.5v13M5.5 12h13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24">
+      <path d="M2.8 12S6.3 5.6 12 5.6 21.2 12 21.2 12 17.7 18.4 12 18.4 2.8 12 2.8 12Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+      <circle cx="12" cy="12" r="2.7" fill="none" stroke="currentColor" stroke-width="1.7" />
+    </symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24">
+      <path d="M4.5 9.5h9.8a5 5 0 0 1 0 10H8.2M4.5 9.5l4-4M4.5 9.5l4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+    <symbol id="i-user" viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7" />
+      <path d="M4.8 19.7c1.2-3.1 4-4.7 7.2-4.7s6 1.6 7.2 4.7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="m5 12.5 4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24">
+      <path d="M12 3.6 21.4 20H2.6L12 3.6Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+      <path d="M12 10v4.2m0 2.8v.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24">
+      <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+    </symbol>
+    <symbol id="i-users" viewBox="0 0 24 24">
+      <circle cx="9" cy="8.2" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7" />
+      <path d="M2.8 19c1-2.7 3.4-4.2 6.2-4.2s5.2 1.5 6.2 4.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+      <path d="M15.6 5.4a3.2 3.2 0 0 1 0 5.6m1.6 4c2 .6 3.3 2 4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+    </symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24">
+      <rect x="3.5" y="5.5" width="17" height="15" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.7" />
+      <path d="M3.5 10h17M8 3.5v4m8-4v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24">
+      <circle cx="10.8" cy="10.8" r="6" fill="none" stroke="currentColor" stroke-width="1.7" />
+      <path d="m15.4 15.4 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+    </symbol>
+    <symbol id="i-link" viewBox="0 0 24 24">
+      <path d="M9.5 14.5 14.5 9.5m-2.8-.8-2.4 2.4a3.4 3.4 0 0 0 4.8 4.8l2.4-2.4m-7.2-.4-2 2a3.4 3.4 0 0 0 4.8 4.8m4.4-9.6 2-2a3.4 3.4 0 0 1-4.8 4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" transform="translate(0 -2)" />
+    </symbol>
+  </svg>
+
   <header class="app-header">
-    <h1 class="app-header__title">Sistema de Gestión de Eventos y Entradas</h1>
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true"><svg width="20" height="20"><use href="#i-ticket" /></svg></span>
+      <span class="brand__text">
+        <span class="brand__name">Taquilla</span>
+        <span class="brand__sub">Sistema de Gestión de Eventos y Entradas</span>
+      </span>
+    </div>
     <nav class="tabs" aria-label="Secciones">
-      <button class="tab" data-tab="ventas" type="button">Ventas</button>
-      <button class="tab" data-tab="asistentes" type="button">Asistentes</button>
+      <button class="tab is-active" id="tab-ventas" data-tab="ventas" type="button" aria-current="page">Ventas</button>
+      <button class="tab" id="tab-asistentes" data-tab="asistentes" type="button">Asistentes</button>
     </nav>
+    <span class="api-pill" data-role="api-pill" title="Servicio de venta (REST) validado contra Aforo (gRPC)">
+      <span class="api-pill__dot" aria-hidden="true"></span>
+      <span class="api-pill__text">API en línea</span>
+    </span>
   </header>
 
   <main class="app-main">
-    <section id="view-ventas" class="view"></section>
-    <section id="view-asistentes" class="view is-hidden"></section>
+    <section id="view-ventas" class="view" aria-label="Ventas"></section>
+    <section id="view-asistentes" class="view is-hidden" aria-label="Asistentes"></section>
   </main>
 
-  <div id="toast-container" class="toast-container"></div>
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>
 
-  <div id="modal-root" class="modal-root is-hidden">
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modal__header">
+  <dialog id="app-modal" class="modal" aria-labelledby="modal-title">
+    <div class="modal__card">
+      <div class="modal__head">
         <h2 id="modal-title" class="modal__title"></h2>
-        <button id="modal-close" class="modal__close" type="button" aria-label="Cerrar">&times;</button>
+        <button id="modal-close" class="icon-btn" type="button" aria-label="Cerrar">
+          <svg width="16" height="16"><use href="#i-x" /></svg>
+        </button>
       </div>
+      <div class="modal__perfo" aria-hidden="true"></div>
       <div id="modal-body" class="modal__body"></div>
     </div>
-  </div>
+  </dialog>
+
+  <dialog id="confirm-modal" class="modal modal--slim" aria-labelledby="confirm-title">
+    <div class="modal__card">
+      <div class="modal__head">
+        <h2 id="confirm-title" class="modal__title"></h2>
+      </div>
+      <div class="modal__perfo" aria-hidden="true"></div>
+      <p id="confirm-message" class="confirm__message"></p>
+      <div class="confirm__actions">
+        <button id="confirm-cancel" class="btn btn--quiet" type="button">Cancelar</button>
+        <button id="confirm-ok" class="btn btn--danger-solid" type="button"></button>
+      </div>
+    </div>
+  </dialog>
 
   <script type="module" src="js/app.js"></script>
 </body>
