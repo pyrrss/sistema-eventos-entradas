@@ -1,10 +1,20 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, CheckConstraint
+from sqlalchemy import Column, String, DateTime, ForeignKey, CheckConstraint, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
 
 from database import Base
+
+
+class ApiKey(Base):
+    __tablename__ = "api_key"
+
+    key = Column(String(64), primary_key=True)
+    nombre = Column(String(100), nullable=False)
+    activo = Column(Boolean, nullable=False, default=True)
+    fecha_creacion = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
 
 class Asistente(Base):
     __tablename__ = "asistente"
@@ -54,3 +64,23 @@ class Venta(Base):
             name="check_estado_venta"
         ),
     )
+
+    @property
+    def id(self):
+        return self.venta_id
+
+    @property
+    def created_at(self):
+        return self.fecha_venta
+
+    @property
+    def asistente_nombre(self):
+        return self.asistente.nombre_completo if self.asistente else None
+
+    @property
+    def evento_nombre(self):
+        return self.nombre_evento
+
+    @property
+    def seccion_nombre(self):
+        return self.nombre_seccion

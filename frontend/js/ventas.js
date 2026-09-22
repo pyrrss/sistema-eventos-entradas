@@ -419,9 +419,10 @@ export function initVentas(container) {
       submitBtn.classList.add('is-loading');
       try {
         const creado = await api.ventas.create({
-          asistente_id: Number(asistenteSel.value),
-          evento_id: Number(eventoSel.value),
-          seccion_id: Number(seleccion.id),
+          asistente_id: asistenteSel.value,
+          id_seccion_aforo: seleccion.id,
+          nombre_evento: eventoSel.selectedOptions[0].textContent,
+          nombre_seccion: seleccion.nombre,
           cantidad: qty,
         });
         closeModal();

@@ -1,13 +1,19 @@
 import { api } from './api.js';
 
-const modalRoot = document.getElementById('app-modal');
-const modalTitle = document.getElementById('modal-title');
-const modalBody = document.getElementById('modal-body');
-const confirmRoot = document.getElementById('confirm-modal');
+let modalRoot = null;
+let modalTitle = null;
+let modalBody = null;
+let confirmRoot = null;
 
 export function initUi() {
-  document.getElementById('modal-close').addEventListener('click', closeModal);
-  modalRoot.addEventListener('click', (e) => {
+  modalRoot = document.getElementById('app-modal');
+  modalTitle = document.getElementById('modal-title');
+  modalBody = document.getElementById('modal-body');
+  confirmRoot = document.getElementById('confirm-modal');
+
+  const modalClose = document.getElementById('modal-close');
+  if (modalClose) modalClose.addEventListener('click', closeModal);
+  if (modalRoot) modalRoot.addEventListener('click', (e) => {
     if (e.target === modalRoot) closeModal();
   });
   const pill = document.querySelector('[data-role="api-pill"]');
@@ -16,13 +22,14 @@ export function initUi() {
 
 async function checkApi() {
   const pill = document.querySelector('[data-role="api-pill"]');
-  const text = pill.querySelector('.api-pill__text');
+  const text = pill?.querySelector('.api-pill__text');
+  if (!pill || !text) return;
   pill.disabled = true;
-  text.textContent = 'Verificando…';
+  text.textContent = 'Verificando...';
   try {
     await api.health();
     setApiStatus(true);
-    toast('La API de venta está en línea');
+    toast('La API de venta esta en linea');
   } catch (err) {
     setApiStatus(false);
     toast(err.message, 'error');
@@ -33,13 +40,14 @@ async function checkApi() {
 
 export function toast(message, type = 'success') {
   const container = document.getElementById('toast-container');
+  if (!container) return;
   const el = document.createElement('div');
-  el.className = `toast${type === 'error' ? ' toast--error' : ''}`;
+  el.className = 'toast' + (type === 'error' ? ' toast--error' : '');
   el.setAttribute('role', type === 'error' ? 'alert' : 'status');
 
   const icon = document.createElement('span');
   icon.className = 'toast__icon';
-  icon.innerHTML = `<svg width="15" height="15" aria-hidden="true"><use href="#${type === 'error' ? 'i-alert' : 'i-check'}"/></svg>`;
+  icon.innerHTML = '<svg width="15" height="15" aria-hidden="true"><use href="#' + (type === 'error' ? 'i-alert' : 'i-check') + '"/></svg>';
   const text = document.createElement('span');
   text.textContent = message;
   el.append(icon, text);
@@ -52,6 +60,7 @@ export function toast(message, type = 'success') {
 }
 
 export function openModal(title, contentNode) {
+  if (!modalTitle || !modalBody || !modalRoot) return;
   modalTitle.textContent = title;
   modalBody.innerHTML = '';
   modalBody.appendChild(contentNode);
@@ -59,37 +68,44 @@ export function openModal(title, contentNode) {
 }
 
 export function closeModal() {
-  if (modalRoot.open) modalRoot.close();
+  if (modalRoot?.open) modalRoot.close();
 }
 
 export function confirmDialog({ title, message, confirmText }) {
   return new Promise((resolve) => {
-    document.getElementById('confirm-title').textContent = title;
-    document.getElementById('confirm-message').textContent = message;
+    const confirmTitle = document.getElementById('confirm-title');
+    const confirmMessage = document.getElementById('confirm-message');
     const ok = document.getElementById('confirm-ok');
     const cancel = document.getElementById('confirm-cancel');
+    const confirmRootEl = document.getElementById('confirm-modal');
+    if (!confirmTitle || !confirmMessage || !ok || !cancel || !confirmRootEl) {
+      resolve(false);
+      return;
+    }
+    confirmTitle.textContent = title;
+    confirmMessage.textContent = message;
     ok.textContent = confirmText;
 
     const cleanup = () => {
       cancel.removeEventListener('click', onDismiss);
       ok.removeEventListener('click', onConfirm);
-      confirmRoot.removeEventListener('cancel', onDismiss);
+      confirmRootEl.removeEventListener('cancel', onDismiss);
     };
     const onDismiss = () => {
       cleanup();
-      if (confirmRoot.open) confirmRoot.close();
+      if (confirmRootEl.open) confirmRootEl.close();
       resolve(false);
     };
     const onConfirm = () => {
       cleanup();
-      confirmRoot.close();
+      confirmRootEl.close();
       resolve(true);
     };
 
     cancel.addEventListener('click', onDismiss);
     ok.addEventListener('click', onConfirm);
-    confirmRoot.addEventListener('cancel', onDismiss);
-    confirmRoot.showModal();
+    confirmRootEl.addEventListener('cancel', onDismiss);
+    confirmRootEl.showModal();
     cancel.focus();
   });
 }
@@ -99,7 +115,7 @@ export function esc(value) {
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
+    .replaceAll("\"", "&quot;")
     .replaceAll("'", '&#39;');
 }
 
@@ -110,7 +126,7 @@ export function dlNode(entries) {
     const dt = document.createElement('dt');
     dt.textContent = label;
     const dd = document.createElement('dd');
-    dd.textContent = value ?? '—';
+    dd.textContent = value ?? '\u2014';
     dl.appendChild(dt);
     dl.appendChild(dd);
   }
@@ -122,12 +138,13 @@ export function setApiStatus(online) {
   if (!pill) return;
   pill.classList.remove('is-unknown');
   pill.classList.toggle('is-offline', !online);
-  pill.querySelector('.api-pill__text').textContent = online ? 'API en línea' : 'API sin respuesta';
+  const text = pill.querySelector('.api-pill__text');
+  if (text) text.textContent = online ? 'API en linea' : 'API sin respuesta';
   pill.title = online
-    ? 'Última verificación: la API de venta respondió correctamente'
-    : 'Última verificación: no se pudo contactar la API de venta. Clic para reintentar';
+    ? 'Ultima verificacion: la API de venta respondio correctamente'
+    : 'Ultima verificacion: no se pudo contactar la API de venta. Clic para reintentar';
 }
 
 export function icon(name, size = 15) {
-  return `<svg width="${size}" height="${size}" aria-hidden="true"><use href="#${name}"/></svg>`;
+  return '<svg width="' + size + '" height="' + size + '" aria-hidden="true"><use href="#' + name + '"/></svg>';
 }

@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package aforo.v1;
+
+option go_package = "github.com/sistema-eventos-entradas/aforo/v1;aforov1";
+
+service AforoService {
+  rpc GetSeccion(GetSeccionRequest) returns (SeccionResponse);
+  rpc ListSecciones(ListSeccionesRequest) returns (ListSeccionesResponse);
+  rpc VenderEntrada(VenderEntradaRequest) returns (VenderEntradaResponse);
+  rpc AnularEntrada(AnularEntradaRequest) returns (AnularEntradaResponse);
+}
+
+message GetSeccionRequest {
+  string seccion_id = 1;
+}
+
+message SeccionResponse {
+  string seccion_id = 1;
+  string evento_id = 2;
+  string nombre_seccion = 3;
+  int32 capacidad_total = 4;
+  int32 cantidad_entradas_disponibles = 5;
+  bool existe = 6;
+}
+
+message ListSeccionesRequest {
+  string evento_id = 1;
+}
+
+message SeccionInfo {
+  string seccion_id = 1;
+  string nombre_seccion = 2;
+  int32 capacidad_total = 3;
+  int32 cantidad_entradas_disponibles = 4;
+}
+
+message ListSeccionesResponse {
+  repeated SeccionInfo secciones = 1;
+  bool evento_existe = 2;
+}
+
+message VenderEntradaRequest {
+  string seccion_id = 1;
+  int32 cantidad = 2;
+}
+
+message VenderEntradaResponse {
+  bool exito = 1;
+  string mensaje = 2;
+  int32 disponibles_restantes = 3;
+}
+
+message AnularEntradaRequest {
+  string seccion_id = 1;
+  int32 cantidad = 2;
+}
+
+message AnularEntradaResponse {
+  bool exito = 1;
+  string mensaje = 2;
+  int32 disponibles_restantes = 3;
+}

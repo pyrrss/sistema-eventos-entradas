@@ -1,3 +1,13 @@
+CREATE TABLE IF NOT EXISTS api_key (
+    key VARCHAR(64) PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default API key for development
+INSERT INTO api_key (key, nombre) VALUES ('dev-key-123', 'Desarrollo') ON CONFLICT (key) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS asistente (
     asistente_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     rut VARCHAR(20)  NOT NULL UNIQUE,

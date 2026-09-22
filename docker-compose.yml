@@ -40,11 +40,7 @@ services:
     build: ./backend/aforo
     container_name: aforo
     ports:
-      - "8001:8001"  # <--- Expone el puerto a tu PC
-    # Ejecuta Uvicorn al iniciar. "--host 0.0.0.0" es vital en Docker para que acepte conexiones desde afuera.
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
-    volumes:
-      - ./backend/aforo:/app  # Opcional: Para que se actualice el código en vivo sin reconstruir
+      - "50051:50051"
     depends_on:
       db_aforo:
         condition: service_healthy
