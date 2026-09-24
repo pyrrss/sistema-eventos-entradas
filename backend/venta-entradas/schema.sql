@@ -1,12 +1,19 @@
+-- API Keys: solo se almacena el SHA-256 de la clave (nunca la clave tal cual).
+-- Roles: 'lectura' (solo GET) y 'admin' (GET + POST/PUT/DELETE).
+
 CREATE TABLE IF NOT EXISTS api_key (
-    key VARCHAR(64) PRIMARY KEY,
+    key_hash VARCHAR(64) PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
+    rol VARCHAR(20) NOT NULL DEFAULT 'lectura' CHECK (rol IN ('admin', 'lectura')),
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Insert default API key for development
-INSERT INTO api_key (key, nombre) VALUES ('dev-key-123', 'Desarrollo') ON CONFLICT (key) DO NOTHING;
+INSERT INTO api_key (key_hash, nombre, rol) VALUES 
+    ('dev-key-123', 'Desarrollo (admin)', 'admin'),
+    ('dev-read-456', 'Desarrollo (solo lectura)', 'lectura') 
+ON CONFLICT (key_hash) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS asistente (
     asistente_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -30,6 +37,7 @@ CREATE TABLE IF NOT EXISTS venta (
 );
 
 -- hola
+-- chao
 CREATE INDEX IF NOT EXISTS idx_venta_asistente ON venta(asistente_id);
 
 CREATE TABLE IF NOT EXISTS idempotencia (

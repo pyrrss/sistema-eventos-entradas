@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import APIKeyHeader
+# from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 import models
-from database import engine, SessionLocal
+from database import engine, get_db
+#SessionLocal
 from datetime import datetime
+from auth import verify_api_key, require_admin
 from pydantic import BaseModel, Field, EmailStr
 from uuid import UUID
 from typing import Optional
@@ -34,35 +36,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
+# API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+#def get_db():
+#    db = SessionLocal()
+#    try:
+#        yield db
+#    finally:
+#        db.close()
 
 
-def verify_api_key(api_key: str = Depends(API_KEY_HEADER), db: Session = Depends(get_db)):
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API Key requerida",
-            headers={"WWW-Authenticate": "APIKey"},
-        )
-    key_record = db.query(models.ApiKey).filter(models.ApiKey.key == api_key, models.ApiKey.activo == True).first()
-    if not key_record:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API Key inválida o inactiva",
-            headers={"WWW-Authenticate": "APIKey"},
-        )
-    return key_record
+#def verify_api_key(api_key: str = Depends(API_KEY_HEADER), db: Session = Depends(get_db)):
+#    if not api_key:
+#        raise HTTPException(
+#            status_code=status.HTTP_401_UNAUTHORIZED,
+#            detail="API Key requerida",
+#            headers={"WWW-Authenticate": "APIKey"},
+#        )
+#    key_record = db.query(models.ApiKey).filter(models.ApiKey.key == api_key, models.ApiKey.activo == True).first()
+#    if not key_record:
+#        raise HTTPException(
+#            status_code=status.HTTP_401_UNAUTHORIZED,
+#            detail="API Key inválida o inactiva",
+#            headers={"WWW-Authenticate": "APIKey"},
+#        )
+#    return key_record
 
 
 @app.on_event("shutdown")
@@ -145,7 +147,7 @@ def health():
 # ----------- ASISTENTES -----------
 
 @app.post("/api/v1/asistentes", response_model=AsistenteResponse, status_code=status.HTTP_201_CREATED)
-def crear_asistente(asistente: AsistenteCreate, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
+def crear_asistente(asistente: AsistenteCreate, db: Session = Depends(get_db), _: models.ApiKey = Depends(require_admin)):
     db_asistente = db.query(models.Asistente).filter(models.Asistente.rut == asistente.rut).first()
     if db_asistente:
         raise HTTPException(status_code=400, detail="El RUT ya está registrado.")
@@ -171,7 +173,7 @@ def obtener_asistente_uuid(asistente_id: UUID, db: Session = Depends(get_db), _:
 
 
 @app.delete("/api/v1/asistentes/{asistente_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_asistente(asistente_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
+def eliminar_asistente(asistente_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(require_admin)):
     asistente = db.query(models.Asistente).filter(models.Asistente.asistente_id == asistente_id).first()
     if not asistente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El asistente no existe.")
@@ -181,7 +183,7 @@ def eliminar_asistente(asistente_id: UUID, db: Session = Depends(get_db), _: mod
 
 
 @app.put("/api/v1/asistentes/{asistente_id}", response_model=AsistenteResponse)
-def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteUpdate, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
+def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteUpdate, db: Session = Depends(get_db), _: models.ApiKey = Depends(require_admin)):
     asistente_db = db.query(models.Asistente).filter(models.Asistente.asistente_id == asistente_id).first()
     if not asistente_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El asistente con UUID {asistente_id} no existe.")
@@ -248,7 +250,7 @@ def listar_secciones_evento(evento_id: UUID, _: models.ApiKey = Depends(verify_a
 def crear_venta(
     venta: VentaCreate,
     db: Session = Depends(get_db),
-    _: models.ApiKey = Depends(verify_api_key),
+    _: models.ApiKey = Depends(require_admin),
     idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
 ):
     asistente = db.query(models.Asistente).filter(models.Asistente.asistente_id == venta.asistente_id).first()
@@ -328,7 +330,7 @@ def obtener_venta(venta_id: UUID, db: Session = Depends(get_db), _: models.ApiKe
 
 
 @app.delete("/api/v1/ventas/{venta_id}", status_code=status.HTTP_200_OK)
-def anular_venta(venta_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
+def anular_venta(venta_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(require_admin)):
     venta = db.query(models.Venta).filter(models.Venta.venta_id == venta_id).first()
     if not venta:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Venta no encontrada")

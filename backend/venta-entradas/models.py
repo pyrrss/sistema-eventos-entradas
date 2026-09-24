@@ -10,10 +10,15 @@ from database import Base
 class ApiKey(Base):
     __tablename__ = "api_key"
 
-    key = Column(String(64), primary_key=True)
+    key_hash = Column(String(64), primary_key=True)
     nombre = Column(String(100), nullable=False)
+    rol = Column(String(20), nullable=False, default="lectura")
     activo = Column(Boolean, nullable=False, default=True)
     fecha_creacion = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint("rol IN ('admin', 'lectura')", name="check_rol_api_key"),
+    )
 
 
 class Idempotencia(Base):
@@ -64,7 +69,7 @@ class Venta(Base):
     estado = Column(String(20), nullable=False)
     cantidad = Column(Integer, nullable=False, default=1)
     
-    # ¡OJO AQUÍ! Esto NO es una ForeignKey en SQLAlchemy porque la tabla Seccion 
+    # Esto NO es una ForeignKey en SQLAlchemy porque la tabla Seccion 
     # vive en otra base de datos (en el microservicio de Aforo). 
     # Solo guardamos el UUID como referencia cruzada.
     id_seccion_aforo = Column(UUID(as_uuid=True), nullable=False)
