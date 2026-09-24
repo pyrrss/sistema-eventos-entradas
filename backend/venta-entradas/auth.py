@@ -18,7 +18,7 @@ ROL_LECTURA = "lectura"
 _CHALLENGE = {"WWW-Authenticate": 'ApiKey realm="ventana-entradas"'}
 
 def hash_api_key(clave: str) -> str:
-    return hash.lib.sha256(clave.encode("utf-8")).hexdigest()
+    return hashlib.sha256(clave.encode("utf-8")).hexdigest()
 
 def verify_api_key(
     api_key: str | None = Depends(API_KEY_HEADER),
