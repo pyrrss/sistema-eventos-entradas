@@ -58,29 +58,30 @@ function shortId(id) {
   return `#${String(id || '?').slice(0, 8)}`;
 }
 
-function buildForm() {
+function buildForm(a) {
+  const edit = Boolean(a);
   const form = document.createElement('form');
   form.className = 'sale';
   form.noValidate = true;
   form.innerHTML = `
     <label class="field" style="margin-bottom:12px">
       <span>RUT</span>
-      <input class="input" name="rut" required autocomplete="off" placeholder="Ej. 12.345.678-9" />
-      <span class="field__error">${icon('i-alert', 13)} Ingresa un RUT válido (ej. 12345678-9).</span>
+      <input class="input" name="rut" required autocomplete="off" placeholder="Ej. 12.345.678-9" value="${edit ? esc(a.rut) : ''}" ${edit ? 'disabled' : ''} />
+      ${edit ? '<span class="station__hint">El RUT no se puede modificar.</span>' : `<span class="field__error">${icon('i-alert', 13)} Ingresa un RUT válido (ej. 12345678-9).</span>`}
     </label>
     <label class="field" style="margin-bottom:12px">
       <span>Nombre completo</span>
-      <input class="input" name="nombre_completo" required autocomplete="name" placeholder="Ej. Ana Torres Salgado" />
+      <input class="input" name="nombre_completo" required autocomplete="name" placeholder="Ej. Ana Torres Salgado" value="${edit ? esc(a.nombre_completo) : ''}" />
       <span class="field__error">${icon('i-alert', 13)} Escribe el nombre del asistente.</span>
     </label>
     <label class="field">
       <span>Correo electrónico</span>
-      <input class="input" name="email" type="email" required autocomplete="email" placeholder="ana@ejemplo.com" />
+      <input class="input" name="email" type="email" required autocomplete="email" placeholder="ana@ejemplo.com" value="${edit ? esc(a.email) : ''}" />
       <span class="field__error">Escribe un correo válido (ej. ana@ejemplo.com).</span>
     </label>
     <div class="form__actions" style="margin-top:16px">
       <button type="button" class="btn btn--quiet" data-role="f:cancel">Cancelar</button>
-      <button type="submit" class="btn btn--primary">${icon('i-check', 14)}&nbsp;Crear asistente</button>
+      <button type="submit" class="btn btn--primary">${icon('i-check', 14)}&nbsp;${edit ? 'Guardar cambios' : 'Crear asistente'}</button>
     </div>
   `;
   return form;
@@ -94,36 +95,45 @@ export function initAsistentes(container) {
   const tableWrap = container.querySelector('[data-role="asistentes:table-wrap"]');
   const countStamp = container.querySelector('[data-role="asistentes:count"]');
 
-  container.querySelector('[data-role="asistentes:new"]').addEventListener('click', openForm);
+  container.querySelector('[data-role="asistentes:new"]').addEventListener('click', () => openForm());
   stateBox.addEventListener('click', (e) => {
     if (e.target.closest('[data-role="asistentes:empty-new"]')) openForm();
   });
 
-  function openForm() {
-    const form = buildForm();
-    openModal('Nuevo asistente', form);
+  function openForm(a) {
+    const edit = Boolean(a);
+    const form = buildForm(a);
+    openModal(edit ? `Editar asistente ${shortId(a.asistente_id)}` : 'Nuevo asistente', form);
     form.querySelector('[data-role="f:cancel"]').addEventListener('click', closeModal);
-    form.querySelector('[name="rut"]').focus();
+    form.querySelector(edit ? '[name="nombre_completo"]' : '[name="rut"]').focus();
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const rut = form.rut.value.trim();
       const nombreCompleto = form.nombre_completo.value.trim();
       const email = form.email.value.trim();
-      const rutOk = /^\d{1,2}(\.\d{3}){1,2}-[\dkK]$|^\d{7,8}-[\dkK]$/i.test(rut);
+      let rutOk = true;
+      if (!edit) {
+        const rut = form.rut.value.trim();
+        rutOk = /^\d{1,2}(\.\d{3}){1,2}-[\dkK]$|^\d{7,8}-[\dkK]$/i.test(rut);
+        form.rut.closest('.field').classList.toggle('has-error', !rutOk);
+      }
+      const nombreOk = Boolean(nombreCompleto);
       const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-      form.rut.closest('.field').classList.toggle('has-error', !rutOk);
-      form.nombre_completo.closest('.field').classList.toggle('has-error', !nombreCompleto);
+      form.nombre_completo.closest('.field').classList.toggle('has-error', !nombreOk);
       form.email.closest('.field').classList.toggle('has-error', !emailOk);
-      if (!rutOk || !nombreCompleto || !emailOk) return;
+      if (!rutOk || !nombreOk || !emailOk) return;
 
       const submit = form.querySelector('button[type="submit"]');
       submit.disabled = true;
       try {
-        await api.asistentes.create({ rut, nombre_completo: nombreCompleto, email });
+        if (edit) {
+          await api.asistentes.update(a.asistente_id, { nombre_completo: nombreCompleto, email });
+          toast('Datos actualizados');
+        } else {
+          await api.asistentes.create({ rut: form.rut.value.trim(), nombre_completo: nombreCompleto, email });
+          toast(`${nombreCompleto} quedó registrado`);
+        }
         closeModal();
-        toast(`${nombreCompleto} quedó registrado`);
         await refresh();
       } catch (err) {
         toast(err.message, 'error');
@@ -133,9 +143,20 @@ export function initAsistentes(container) {
     });
   }
 
+  async function openEdit(id) {
+    try {
+      const a = await api.asistentes.get(id);
+      openForm(a);
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
   tbody.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-action="ver"]');
-    if (btn) showDetail(btn.dataset.id);
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'ver') showDetail(btn.dataset.id);
+    if (btn.dataset.action === 'editar') openEdit(btn.dataset.id);
   });
 
   async function showDetail(id) {
@@ -202,6 +223,7 @@ export function initAsistentes(container) {
               <td class="cell-actions">
                 <div class="row-actions">
                   <button class="icon-btn" data-action="ver" data-id="${esc(a.asistente_id)}" type="button" title="Ver detalle" aria-label="Ver asistente ${esc(a.nombre_completo)}">${icon('i-eye', 16)}</button>
+                  <button class="icon-btn" data-action="editar" data-id="${esc(a.asistente_id)}" type="button" title="Editar datos" aria-label="Editar asistente ${esc(a.nombre_completo)}">${icon('i-edit', 16)}</button>
                 </div>
               </td>
             </tr>

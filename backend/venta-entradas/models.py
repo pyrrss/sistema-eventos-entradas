@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, CheckConstraint, Boolean
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, CheckConstraint, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -16,8 +16,24 @@ class ApiKey(Base):
     fecha_creacion = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+class Idempotencia(Base):
+    """Candado de idempotencia para POST /ventas.
+    La PRIMARY KEY sobre `clave` es el lock: el segundo INSERT de la misma
+    clave falla (IntegrityError) o se bloquea hasta que el primero commitea.
+    `venta_id` se confirma en el MISMO commit que la venta: si la venta no
+    existe, la clave tampoco (queda libre para reintentar).
+    """
+    __tablename__ = "idempotencia"
+
+    clave = Column(String(64), primary_key=True)
+    hash_body = Column(String(64), nullable=False)
+    venta_id = Column(UUID(as_uuid=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 class Asistente(Base):
     __tablename__ = "asistente"
+
 
     asistente_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     rut = Column(String(20), nullable=False, unique=True)
@@ -46,6 +62,7 @@ class Venta(Base):
     
     fecha_venta = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     estado = Column(String(20), nullable=False)
+    cantidad = Column(Integer, nullable=False, default=1)
     
     # ¡OJO AQUÍ! Esto NO es una ForeignKey en SQLAlchemy porque la tabla Seccion 
     # vive en otra base de datos (en el microservicio de Aforo). 

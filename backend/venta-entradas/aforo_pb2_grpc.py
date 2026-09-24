@@ -44,6 +44,11 @@ class AforoServiceStub:
                 request_serializer=aforo__pb2.ListSeccionesRequest.SerializeToString,
                 response_deserializer=aforo__pb2.ListSeccionesResponse.FromString,
                 _registered_method=True)
+        self.ListEventos = channel.unary_unary(
+                '/aforo.v1.AforoService/ListEventos',
+                request_serializer=aforo__pb2.ListEventosRequest.SerializeToString,
+                response_deserializer=aforo__pb2.ListEventosResponse.FromString,
+                _registered_method=True)
         self.VenderEntrada = channel.unary_unary(
                 '/aforo.v1.AforoService/VenderEntrada',
                 request_serializer=aforo__pb2.VenderEntradaRequest.SerializeToString,
@@ -66,6 +71,12 @@ class AforoServiceServicer:
         raise NotImplementedError('Method not implemented!')
 
     def ListSecciones(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListEventos(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -95,6 +106,11 @@ def add_AforoServiceServicer_to_server(servicer, server):
                     servicer.ListSecciones,
                     request_deserializer=aforo__pb2.ListSeccionesRequest.FromString,
                     response_serializer=aforo__pb2.ListSeccionesResponse.SerializeToString,
+            ),
+            'ListEventos': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListEventos,
+                    request_deserializer=aforo__pb2.ListEventosRequest.FromString,
+                    response_serializer=aforo__pb2.ListEventosResponse.SerializeToString,
             ),
             'VenderEntrada': grpc.unary_unary_rpc_method_handler(
                     servicer.VenderEntrada,
@@ -161,6 +177,33 @@ class AforoService:
             '/aforo.v1.AforoService/ListSecciones',
             aforo__pb2.ListSeccionesRequest.SerializeToString,
             aforo__pb2.ListSeccionesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListEventos(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/aforo.v1.AforoService/ListEventos',
+            aforo__pb2.ListEventosRequest.SerializeToString,
+            aforo__pb2.ListEventosResponse.FromString,
             options,
             channel_credentials,
             insecure,

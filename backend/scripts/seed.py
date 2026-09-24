@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script de seed para poblar las bases de datos de Aforo y Ventas con datos de prueba.
-Ejecutar desde el host: python3 seed.py
+Ejecutar desde el host: python3 backend/scripts/seed.py
 Requiere: docker compose up -d (servicios corriendo)
 """
 
@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 # Configuración de conexiones
 DB_AFORO = "postgresql://aforo:aforo_dev@localhost:5432/db_aforo"
-DB_VENTAS = "postgresql://ventas:ventas_dev@localhost:5432/db_ventas"
+DB_VENTAS = "postgresql://ventas:ventas_dev@localhost:5433/db_ventas"
 
 
 def seed_aforo():
@@ -82,7 +82,7 @@ def seed_aforo():
 
     for evento_id, secs in secciones.items():
         for i, (nombre, cap) in enumerate(secs):
-            seccion_id = f"{evento_id[:8]}{i:04d}{evento_id[12:]}"
+            seccion_id = f"{evento_id[:8]}-{i:04d}-{evento_id[14:]}"
             cur.execute("""
                 INSERT INTO seccion (seccion_id, evento_id, nombre_seccion, capacidad_total, cantidad_entradas_disponibles)
                 VALUES (%s, %s, %s, %s, %s)
@@ -104,7 +104,7 @@ def seed_ventas():
 
     # API Key (por si no existe)
     cur.execute("""
-        INSERT INTO api_key (key, nombre) VALUES ('dev-key-123', 'Desarrollo')
+        INSERT INTO api_key (key, nombre, activo) VALUES ('dev-key-123', 'Desarrollo', TRUE)
         ON CONFLICT (key) DO NOTHING
     """)
     print("  API Key: dev-key-123")

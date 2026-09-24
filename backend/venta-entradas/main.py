@@ -7,9 +7,12 @@ from database import engine, SessionLocal
 from datetime import datetime
 from pydantic import BaseModel, Field, EmailStr
 from uuid import UUID
-from typing import Literal, Optional
+from typing import Optional
 import logging
+import hashlib
 import grpc
+
+from sqlalchemy.exc import IntegrityError
 
 import aforo_client
 import aforo_pb2
@@ -19,9 +22,9 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Microservicio Venta Entradas",
     version="1.0.0",
-    docs_url="/v1/docs",
-    redoc_url="/v1/redoc",
-    openapi_url="/v1/openapi.json"
+    docs_url="/api/v1/docs",
+    redoc_url="/api/v1/redoc",
+    openapi_url="/api/v1/openapi.json"
 )
 
 app.add_middleware(
@@ -97,7 +100,6 @@ class VentaCreate(BaseModel):
     nombre_evento: str = Field(..., max_length=200)
     nombre_seccion: str = Field(..., max_length=200)
     cantidad: int = Field(..., ge=1)
-    estado: Literal['VENDIDA', 'ANULADA'] = 'VENDIDA'
 
 
 class VentaResponse(BaseModel):
@@ -135,14 +137,14 @@ class SeccionResponse(BaseModel):
 
 # ----------- ENDPOINTS v1 -----------
 
-@app.get("/v1/health")
+@app.get("/api/v1/health")
 def health():
     return {"message": "OK", "version": "1.0.0"}
 
 
 # ----------- ASISTENTES -----------
 
-@app.post("/v1/asistentes", response_model=AsistenteResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/api/v1/asistentes", response_model=AsistenteResponse, status_code=status.HTTP_201_CREATED)
 def crear_asistente(asistente: AsistenteCreate, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     db_asistente = db.query(models.Asistente).filter(models.Asistente.rut == asistente.rut).first()
     if db_asistente:
@@ -154,13 +156,13 @@ def crear_asistente(asistente: AsistenteCreate, db: Session = Depends(get_db), _
     return nuevo_asistente
 
 
-@app.get("/v1/asistentes", response_model=list[AsistenteResponse])
+@app.get("/api/v1/asistentes", response_model=list[AsistenteResponse])
 def obtener_asistentes(db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     asistentes = db.query(models.Asistente).offset(0).limit(50).all()
     return asistentes or []
 
 
-@app.get("/v1/asistentes/{asistente_id}", response_model=AsistenteResponse)
+@app.get("/api/v1/asistentes/{asistente_id}", response_model=AsistenteResponse)
 def obtener_asistente_uuid(asistente_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     asistente = db.query(models.Asistente).filter(models.Asistente.asistente_id == asistente_id).first()
     if not asistente:
@@ -168,7 +170,7 @@ def obtener_asistente_uuid(asistente_id: UUID, db: Session = Depends(get_db), _:
     return asistente
 
 
-@app.delete("/v1/asistentes/{asistente_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/api/v1/asistentes/{asistente_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_asistente(asistente_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     asistente = db.query(models.Asistente).filter(models.Asistente.asistente_id == asistente_id).first()
     if not asistente:
@@ -178,7 +180,7 @@ def eliminar_asistente(asistente_id: UUID, db: Session = Depends(get_db), _: mod
     return None
 
 
-@app.put("/v1/asistentes/{asistente_id}", response_model=AsistenteResponse)
+@app.put("/api/v1/asistentes/{asistente_id}", response_model=AsistenteResponse)
 def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteUpdate, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     asistente_db = db.query(models.Asistente).filter(models.Asistente.asistente_id == asistente_id).first()
     if not asistente_db:
@@ -190,7 +192,7 @@ def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteUpdate
     return asistente_db
 
 
-@app.get("/v1/asistentes/rut/{rut}", response_model=AsistenteResponse)
+@app.get("/api/v1/asistentes/rut/{rut}", response_model=AsistenteResponse)
 def obtener_asistente_por_rut(rut: str, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     asistente = db.query(models.Asistente).filter(models.Asistente.rut == rut).first()
     if not asistente:
@@ -200,30 +202,26 @@ def obtener_asistente_por_rut(rut: str, db: Session = Depends(get_db), _: models
 
 # ----------- EVENTOS Y SECCIONES (Proxy a gRPC Aforo) -----------
 
-@app.get("/v1/eventos", response_model=list[EventoResponse])
+@app.get("/api/v1/eventos", response_model=list[EventoResponse])
 def listar_eventos(_: models.ApiKey = Depends(verify_api_key)):
     try:
-        from database import SessionLocal
-        from models import Evento
-        db = SessionLocal()
-        try:
-            eventos = db.query(Evento).all()
-            return [
-                EventoResponse(
-                    id=e.evento_id,
-                    nombre=e.nombre_evento,
-                    nombre_lugar=e.nombre_lugar,
-                    fecha_evento=e.fecha_evento
-                ) for e in eventos
-            ]
-        finally:
-            db.close()
-    except Exception as e:
-        logger.error(f"Error listando eventos: {e}")
+        response = aforo_client.aforo_client.list_eventos()
+        return [
+            EventoResponse(
+                id=UUID(e.evento_id),
+                nombre=e.nombre_evento,
+                nombre_lugar=e.nombre_lugar,
+                fecha_evento=e.fecha_evento
+            ) for e in response.eventos
+        ]
+    except grpc.RpcError as e:
+        logger.error(f"gRPC error listando eventos: {e.code()} - {e.details()}")
+        if e.code() == grpc.StatusCode.UNAVAILABLE:
+            raise HTTPException(status_code=503, detail="Servicio de Aforo no disponible")
         raise HTTPException(status_code=500, detail="Error consultando eventos")
 
 
-@app.get("/v1/eventos/{evento_id}/secciones", response_model=list[SeccionResponse])
+@app.get("/api/v1/eventos/{evento_id}/secciones", response_model=list[SeccionResponse])
 def listar_secciones_evento(evento_id: UUID, _: models.ApiKey = Depends(verify_api_key)):
     try:
         response = aforo_client.aforo_client.list_secciones(str(evento_id))
@@ -246,11 +244,42 @@ def listar_secciones_evento(evento_id: UUID, _: models.ApiKey = Depends(verify_a
 
 # ----------- VENTAS -----------
 
-@app.post("/v1/ventas", response_model=VentaResponse, status_code=status.HTTP_201_CREATED)
-def crear_venta(venta: VentaCreate, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
+@app.post("/api/v1/ventas", response_model=VentaResponse, status_code=status.HTTP_201_CREATED)
+def crear_venta(
+    venta: VentaCreate,
+    db: Session = Depends(get_db),
+    _: models.ApiKey = Depends(verify_api_key),
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
+):
     asistente = db.query(models.Asistente).filter(models.Asistente.asistente_id == venta.asistente_id).first()
     if not asistente:
         raise HTTPException(status_code=404, detail="Asistente no encontrado")
+
+    hash_body = hashlib.sha256(venta.model_dump_json().encode()).hexdigest()
+    candado = None
+
+    if idempotency_key:
+        candado = models.Idempotencia(clave=idempotency_key, hash_body=hash_body)
+        db.add(candado)
+        try:
+            # Postgres bloquea aquí si otro request tiene la misma clave sin commitear.
+            db.flush()
+        except IntegrityError:
+            # Clave duplicada: es un retry del mismo intento lógico.
+            db.rollback()
+            previo = db.query(models.Idempotencia).filter(models.Idempotencia.clave == idempotency_key).first()
+            if previo is None:
+                # El ganador abortó justo ahora; la clave quedó libre.
+                raise HTTPException(status_code=409, detail="Venta duplicada abortada; reintente.")
+            if previo.hash_body != hash_body:
+                raise HTTPException(status_code=422, detail="La Idempotency-Key ya fue usada con otro payload.")
+            if previo.venta_id is None:
+                raise HTTPException(status_code=409, detail="Una venta con esa Idempotency-Key está en procesamiento.")
+            original = db.get(models.Venta, previo.venta_id)
+            if original is None:
+                raise HTTPException(status_code=500, detail="Clave de idempotencia huérfana.")
+            logger.info(f"Replay idempotente: clave={idempotency_key} -> venta={previo.venta_id}")
+            return original
 
     try:
         grpc_response = aforo_client.aforo_client.vender_entrada(str(venta.id_seccion_aforo), venta.cantidad)
@@ -273,21 +302,24 @@ def crear_venta(venta: VentaCreate, db: Session = Depends(get_db), _: models.Api
         nombre_evento=venta.nombre_evento,
         nombre_seccion=venta.nombre_seccion,
         cantidad=venta.cantidad,
-        estado=venta.estado
+        estado='VENDIDA'
     )
     db.add(nueva_venta)
+    db.flush()
+    if candado is not None:
+        candado.venta_id = nueva_venta.venta_id
     db.commit()
     db.refresh(nueva_venta)
     return nueva_venta
 
 
-@app.get("/v1/ventas", response_model=list[VentaResponse])
+@app.get("/api/v1/ventas", response_model=list[VentaResponse])
 def listar_ventas(db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     ventas = db.query(models.Venta).order_by(models.Venta.fecha_venta.desc()).limit(100).all()
     return ventas or []
 
 
-@app.get("/v1/ventas/{venta_id}", response_model=VentaResponse)
+@app.get("/api/v1/ventas/{venta_id}", response_model=VentaResponse)
 def obtener_venta(venta_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     venta = db.query(models.Venta).filter(models.Venta.venta_id == venta_id).first()
     if not venta:
@@ -295,7 +327,7 @@ def obtener_venta(venta_id: UUID, db: Session = Depends(get_db), _: models.ApiKe
     return venta
 
 
-@app.delete("/v1/ventas/{venta_id}", status_code=status.HTTP_200_OK)
+@app.delete("/api/v1/ventas/{venta_id}", status_code=status.HTTP_200_OK)
 def anular_venta(venta_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     venta = db.query(models.Venta).filter(models.Venta.venta_id == venta_id).first()
     if not venta:

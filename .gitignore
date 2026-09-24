@@ -49,3 +49,7 @@ Thumbs.db
 logs/
 tmp/
 *.tmp
+
+docs/PENDIENTES.md
+
+.playwright-cli/

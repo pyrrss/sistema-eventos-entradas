@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8002/v1';
+const API_BASE = 'http://localhost:8002/api/v1';
 const API_KEY = 'dev-key-123';
 
 export class APIError extends Error {
@@ -11,14 +11,16 @@ export class APIError extends Error {
 }
 
 async function request(path, options = {}) {
+    const { headers, ...rest } = options;
     let res;
     try {
         res = await fetch(`${API_BASE}${path}`, {
+            ...rest,
             headers: { 
                 'Content-Type': 'application/json',
-                'X-API-Key': API_KEY
+                'X-API-Key': API_KEY,
+                ...(headers || {}),
             },
-            ...options,
         });
     } catch {
         throw new APIError('No se pudo conectar con el servidor. Verifique que esté en línea.', 0, null);
@@ -48,11 +50,16 @@ export const api = {
         list: () => request('/asistentes'),
         get: (id) => request(`/asistentes/${id}`),
         create: (payload) => request('/asistentes', { method: 'POST', body: JSON.stringify(payload) }),
+        update: (id, payload) => request(`/asistentes/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
     },
     ventas: {
         list: () => request('/ventas'),
         get: (id) => request(`/ventas/${id}`),
-        create: (payload) => request('/ventas', { method: 'POST', body: JSON.stringify(payload) }),
+        create: (payload, idempotencyKey) => request('/ventas', {
+            method: 'POST',
+            headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+            body: JSON.stringify(payload),
+        }),
         revert: (id) => request(`/ventas/${id}`, { method: 'DELETE' }),
     },
     catalogo: {

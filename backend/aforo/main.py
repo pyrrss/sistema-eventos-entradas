@@ -14,6 +14,24 @@ logger = logging.getLogger(__name__)
 
 
 class AforoService(aforo_pb2_grpc.AforoServiceServicer):
+    def ListEventos(self, request, context):
+        db = SessionLocal()
+        try:
+            eventos = db.query(Evento).order_by(Evento.fecha_evento).all()
+            return aforo_pb2.ListEventosResponse(
+                eventos=[
+                    aforo_pb2.EventoInfo(
+                        evento_id=str(e.evento_id),
+                        nombre_evento=e.nombre_evento,
+                        nombre_lugar=e.nombre_lugar,
+                        fecha_evento=str(e.fecha_evento),
+                    )
+                    for e in eventos
+                ]
+            )
+        finally:
+            db.close()
+
     def GetSeccion(self, request, context):
         db = SessionLocal()
         try:

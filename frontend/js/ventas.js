@@ -71,7 +71,10 @@ function seccionLabel(v) {
 }
 
 function estadoOf(v) {
-  return v.estado ?? 'vendido';
+  const e = String(v.estado ?? '').toUpperCase();
+  if (e === 'VENDIDA') return 'vendido';
+  if (e === 'ANULADA') return 'revertido';
+  return 'otro';
 }
 
 function stampFor(estado) {
@@ -217,6 +220,10 @@ export function initVentas(container) {
     let secciones = [];
     let seleccion = null;
     let qty = 1;
+    // Clave por INTENTO (una por modal abierto): si el submit falla por red
+    // y el usuario reintenta desde esta misma ventana, el servidor reconoce
+    // el duplicado y devuelve la venta original en vez de crear otra.
+    const idempotencyKey = crypto.randomUUID();
 
     modal.querySelector('[data-role="m:cancel"]').addEventListener('click', closeModal);
 
@@ -243,7 +250,7 @@ export function initVentas(container) {
         asistenteSel.innerHTML =
           '<option value="">Selecciona un asistente</option>' +
           (asistentes || [])
-            .map((a) => `<option value="${esc(a.id)}">${esc(a.nombre)} · ${esc(a.email)}</option>`)
+            .map((a) => `<option value="${esc(a.asistente_id)}">${esc(a.nombre_completo)} · ${esc(a.email)}</option>`)
             .join('');
         if (!asistentes || asistentes.length === 0) {
           asistenteSel.innerHTML = '<option value="">Primero registra un asistente</option>';
@@ -255,7 +262,7 @@ export function initVentas(container) {
 
     eventoSel.addEventListener('change', async () => {
       seleccion = null;
-      const id = Number(eventoSel.value);
+      const id = eventoSel.value;
       sectores.innerHTML = '';
       if (!id) {
         stationSeccion.classList.add('station--locked');
@@ -424,7 +431,7 @@ export function initVentas(container) {
           nombre_evento: eventoSel.selectedOptions[0].textContent,
           nombre_seccion: seleccion.nombre,
           cantidad: qty,
-        });
+        }, idempotencyKey);
         closeModal();
         toast(`${plural(qty, 'Entrada vendida', 'Entradas vendidas')} — ${qty} × ${seleccion.nombre}`);
         await refresh(creado?.id);
@@ -446,7 +453,7 @@ export function initVentas(container) {
     const { id, action } = btn.dataset;
     if (action === 'ver') {
       try {
-        const v = await api.ventas.get(Number(id));
+        const v = await api.ventas.get(id);
         const node = document.createElement('div');
         node.appendChild(
           dlNode([
@@ -479,7 +486,7 @@ export function initVentas(container) {
       });
       if (!ok) return;
       try {
-        await api.ventas.revert(Number(id));
+        await api.ventas.revert(id);
         toast('Venta revertida — el aforo se liberó');
         await refresh();
       } catch (err) {

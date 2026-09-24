@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS venta (
     fecha_venta TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     estado VARCHAR(20) NOT NULL CHECK (estado IN ('VENDIDA', 'ANULADA')),
     id_seccion_aforo UUID NOT NULL,
+    cantidad INTEGER NOT NULL DEFAULT 1 CHECK (cantidad >= 1),
     nombre_evento VARCHAR(200) NOT NULL,
     nombre_seccion VARCHAR(200) NOT NULL,
 
@@ -30,3 +31,10 @@ CREATE TABLE IF NOT EXISTS venta (
 
 -- hola
 CREATE INDEX IF NOT EXISTS idx_venta_asistente ON venta(asistente_id);
+
+CREATE TABLE IF NOT EXISTS idempotencia (
+    clave VARCHAR(64) PRIMARY KEY,
+    hash_body VARCHAR(64) NOT NULL,
+    venta_id UUID,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

@@ -9,6 +9,8 @@ services:
   db_aforo:
     image: postgres:16-alpine
     container_name: db_aforo
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: db_aforo
       POSTGRES_USER: aforo
@@ -24,6 +26,8 @@ services:
   db_ventas:
     image: postgres:16-alpine
     container_name: db_ventas
+    ports:
+      - "5433:5432"
     environment:
       POSTGRES_DB: db_ventas
       POSTGRES_USER: ventas
@@ -49,7 +53,7 @@ services:
     build: ./backend/venta-entradas
     container_name: venta-entradas
     ports:
-      - "8002:8002"  # <--- Expone el puerto a tu PC
+      - "8002:8002"
     # Ejecuta Uvicorn en el puerto 8002
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"]
     volumes:

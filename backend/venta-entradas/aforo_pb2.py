@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x61\x66oro.proto\x12\x08\x61\x66oro.v1\"\'\n\x11GetSeccionRequest\x12\x12\n\nseccion_id\x18\x01 \x01(\t\"\xa0\x01\n\x0fSeccionResponse\x12\x12\n\nseccion_id\x18\x01 \x01(\t\x12\x11\n\tevento_id\x18\x02 \x01(\t\x12\x16\n\x0enombre_seccion\x18\x03 \x01(\t\x12\x17\n\x0f\x63\x61pacidad_total\x18\x04 \x01(\x05\x12%\n\x1d\x63\x61ntidad_entradas_disponibles\x18\x05 \x01(\x05\x12\x0e\n\x06\x65xiste\x18\x06 \x01(\x08\")\n\x14ListSeccionesRequest\x12\x11\n\tevento_id\x18\x01 \x01(\t\"y\n\x0bSeccionInfo\x12\x12\n\nseccion_id\x18\x01 \x01(\t\x12\x16\n\x0enombre_seccion\x18\x02 \x01(\t\x12\x17\n\x0f\x63\x61pacidad_total\x18\x03 \x01(\x05\x12%\n\x1d\x63\x61ntidad_entradas_disponibles\x18\x04 \x01(\x05\"X\n\x15ListSeccionesResponse\x12(\n\tsecciones\x18\x01 \x03(\x0b\x32\x15.aforo.v1.SeccionInfo\x12\x15\n\revento_existe\x18\x02 \x01(\x08\"<\n\x14VenderEntradaRequest\x12\x12\n\nseccion_id\x18\x01 \x01(\t\x12\x10\n\x08\x63\x61ntidad\x18\x02 \x01(\x05\"V\n\x15VenderEntradaResponse\x12\r\n\x05\x65xito\x18\x01 \x01(\x08\x12\x0f\n\x07mensaje\x18\x02 \x01(\t\x12\x1d\n\x15\x64isponibles_restantes\x18\x03 \x01(\x05\"<\n\x14\x41nularEntradaRequest\x12\x12\n\nseccion_id\x18\x01 \x01(\t\x12\x10\n\x08\x63\x61ntidad\x18\x02 \x01(\x05\"V\n\x15\x41nularEntradaResponse\x12\r\n\x05\x65xito\x18\x01 \x01(\x08\x12\x0f\n\x07mensaje\x18\x02 \x01(\t\x12\x1d\n\x15\x64isponibles_restantes\x18\x03 \x01(\x05\x32\xca\x02\n\x0c\x41\x66oroService\x12\x44\n\nGetSeccion\x12\x1b.aforo.v1.GetSeccionRequest\x1a\x19.aforo.v1.SeccionResponse\x12P\n\rListSecciones\x12\x1e.aforo.v1.ListSeccionesRequest\x1a\x1f.aforo.v1.ListSeccionesResponse\x12P\n\rVenderEntrada\x12\x1e.aforo.v1.VenderEntradaRequest\x1a\x1f.aforo.v1.VenderEntradaResponse\x12P\n\rAnularEntrada\x12\x1e.aforo.v1.AnularEntradaRequest\x1a\x1f.aforo.v1.AnularEntradaResponseB6Z4github.com/sistema-eventos-entradas/aforo/v1;aforov1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x61\x66oro.proto\x12\x08\x61\x66oro.v1\"\'\n\x11GetSeccionRequest\x12\x12\n\nseccion_id\x18\x01 \x01(\t\"\xa0\x01\n\x0fSeccionResponse\x12\x12\n\nseccion_id\x18\x01 \x01(\t\x12\x11\n\tevento_id\x18\x02 \x01(\t\x12\x16\n\x0enombre_seccion\x18\x03 \x01(\t\x12\x17\n\x0f\x63\x61pacidad_total\x18\x04 \x01(\x05\x12%\n\x1d\x63\x61ntidad_entradas_disponibles\x18\x05 \x01(\x05\x12\x0e\n\x06\x65xiste\x18\x06 \x01(\x08\")\n\x14ListSeccionesRequest\x12\x11\n\tevento_id\x18\x01 \x01(\t\"y\n\x0bSeccionInfo\x12\x12\n\nseccion_id\x18\x01 \x01(\t\x12\x16\n\x0enombre_seccion\x18\x02 \x01(\t\x12\x17\n\x0f\x63\x61pacidad_total\x18\x03 \x01(\x05\x12%\n\x1d\x63\x61ntidad_entradas_disponibles\x18\x04 \x01(\x05\"X\n\x15ListSeccionesResponse\x12(\n\tsecciones\x18\x01 \x03(\x0b\x32\x15.aforo.v1.SeccionInfo\x12\x15\n\revento_existe\x18\x02 \x01(\x08\"\x14\n\x12ListEventosRequest\"b\n\nEventoInfo\x12\x11\n\tevento_id\x18\x01 \x01(\t\x12\x15\n\rnombre_evento\x18\x02 \x01(\t\x12\x14\n\x0cnombre_lugar\x18\x03 \x01(\t\x12\x14\n\x0c\x66\x65\x63ha_evento\x18\x04 \x01(\t\"<\n\x13ListEventosResponse\x12%\n\x07\x65ventos\x18\x01 \x03(\x0b\x32\x14.aforo.v1.EventoInfo\"<\n\x14VenderEntradaRequest\x12\x12\n\nseccion_id\x18\x01 \x01(\t\x12\x10\n\x08\x63\x61ntidad\x18\x02 \x01(\x05\"V\n\x15VenderEntradaResponse\x12\r\n\x05\x65xito\x18\x01 \x01(\x08\x12\x0f\n\x07mensaje\x18\x02 \x01(\t\x12\x1d\n\x15\x64isponibles_restantes\x18\x03 \x01(\x05\"<\n\x14\x41nularEntradaRequest\x12\x12\n\nseccion_id\x18\x01 \x01(\t\x12\x10\n\x08\x63\x61ntidad\x18\x02 \x01(\x05\"V\n\x15\x41nularEntradaResponse\x12\r\n\x05\x65xito\x18\x01 \x01(\x08\x12\x0f\n\x07mensaje\x18\x02 \x01(\t\x12\x1d\n\x15\x64isponibles_restantes\x18\x03 \x01(\x05\x32\x96\x03\n\x0c\x41\x66oroService\x12\x44\n\nGetSeccion\x12\x1b.aforo.v1.GetSeccionRequest\x1a\x19.aforo.v1.SeccionResponse\x12P\n\rListSecciones\x12\x1e.aforo.v1.ListSeccionesRequest\x1a\x1f.aforo.v1.ListSeccionesResponse\x12J\n\x0bListEventos\x12\x1c.aforo.v1.ListEventosRequest\x1a\x1d.aforo.v1.ListEventosResponse\x12P\n\rVenderEntrada\x12\x1e.aforo.v1.VenderEntradaRequest\x1a\x1f.aforo.v1.VenderEntradaResponse\x12P\n\rAnularEntrada\x12\x1e.aforo.v1.AnularEntradaRequest\x1a\x1f.aforo.v1.AnularEntradaResponseB6Z4github.com/sistema-eventos-entradas/aforo/v1;aforov1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,14 +42,20 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SECCIONINFO']._serialized_end=393
   _globals['_LISTSECCIONESRESPONSE']._serialized_start=395
   _globals['_LISTSECCIONESRESPONSE']._serialized_end=483
-  _globals['_VENDERENTRADAREQUEST']._serialized_start=485
-  _globals['_VENDERENTRADAREQUEST']._serialized_end=545
-  _globals['_VENDERENTRADARESPONSE']._serialized_start=547
-  _globals['_VENDERENTRADARESPONSE']._serialized_end=633
-  _globals['_ANULARENTRADAREQUEST']._serialized_start=635
-  _globals['_ANULARENTRADAREQUEST']._serialized_end=695
-  _globals['_ANULARENTRADARESPONSE']._serialized_start=697
-  _globals['_ANULARENTRADARESPONSE']._serialized_end=783
-  _globals['_AFOROSERVICE']._serialized_start=786
-  _globals['_AFOROSERVICE']._serialized_end=1116
+  _globals['_LISTEVENTOSREQUEST']._serialized_start=485
+  _globals['_LISTEVENTOSREQUEST']._serialized_end=505
+  _globals['_EVENTOINFO']._serialized_start=507
+  _globals['_EVENTOINFO']._serialized_end=605
+  _globals['_LISTEVENTOSRESPONSE']._serialized_start=607
+  _globals['_LISTEVENTOSRESPONSE']._serialized_end=667
+  _globals['_VENDERENTRADAREQUEST']._serialized_start=669
+  _globals['_VENDERENTRADAREQUEST']._serialized_end=729
+  _globals['_VENDERENTRADARESPONSE']._serialized_start=731
+  _globals['_VENDERENTRADARESPONSE']._serialized_end=817
+  _globals['_ANULARENTRADAREQUEST']._serialized_start=819
+  _globals['_ANULARENTRADAREQUEST']._serialized_end=879
+  _globals['_ANULARENTRADARESPONSE']._serialized_start=881
+  _globals['_ANULARENTRADARESPONSE']._serialized_end=967
+  _globals['_AFOROSERVICE']._serialized_start=970
+  _globals['_AFOROSERVICE']._serialized_end=1376
 # @@protoc_insertion_point(module_scope)

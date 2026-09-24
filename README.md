@@ -11,9 +11,17 @@ docker compose down
 
 Frontend: `http://localhost:8080`
 
-API REST (versionada): `http://localhost:8002/v1/docs` (Swagger UI)
+API REST (versionada): `http://localhost:8002/api/v1/docs` (Swagger UI)
 
 **Autenticación**: Header `X-API-Key: dev-key-123`
+
+## Código gRPC
+
+El contrato es `backend/aforo/aforo.proto`. En caso de modificar, ejecutar:
+
+```bash
+./scripts/gen-proto.sh
+```
 
 ## Frontend
 
@@ -26,25 +34,25 @@ Contenedor: nginx:alpine (puerto 80 → 8080).
 | Servicio | Rol | Protocolo | Stack |
 |----------|-----|-----------|-------|
 | aforo | Fuente de verdad: eventos, secciones, disponibilidad | gRPC (interno, 50051) | Python 3.12, grpcio, SQLAlchemy |
-| venta-entradas | Asistentes y ventas; valida con aforo antes de vender | REST (8002, `/v1`) | Python 3.12, FastAPI, Uvicorn, cliente gRPC, SQLAlchemy |
+| venta-entradas | Asistentes y ventas; valida con aforo antes de vender | REST (8002, `/api/v1`) | Python 3.12, FastAPI, Uvicorn, cliente gRPC, SQLAlchemy |
 
 ### Endpoints REST (v1)
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| GET | `/v1/health` | Health check |
-| POST | `/v1/asistentes` | Crear asistente |
-| GET | `/v1/asistentes` | Listar asistentes |
-| GET | `/v1/asistentes/{id}` | Obtener asistente por ID |
-| PUT | `/v1/asistentes/{id}` | Actualizar asistente |
-| DELETE | `/v1/asistentes/{id}` | Eliminar asistente |
-| GET | `/v1/asistentes/rut/{rut}` | Obtener asistente por RUT |
-| GET | `/v1/eventos` | Listar eventos (proxy a Aforo) |
-| GET | `/v1/eventos/{id}/secciones` | Listar secciones de evento (proxy gRPC) |
-| POST | `/v1/ventas` | Vender entrada (valida stock en Aforo) |
-| GET | `/v1/ventas` | Listar ventas |
-| GET | `/v1/ventas/{id}` | Obtener venta por ID |
-| DELETE | `/v1/ventas/{id}` | Anular venta (libera aforo) |
+| GET | `/api/api/v1/health` | Health check |
+| POST | `/api/api/v1/asistentes` | Crear asistente |
+| GET | `/api/api/v1/asistentes` | Listar asistentes |
+| GET | `/api/api/v1/asistentes/{id}` | Obtener asistente por ID |
+| PUT | `/api/api/v1/asistentes/{id}` | Actualizar asistente |
+| DELETE | `/api/api/v1/asistentes/{id}` | Eliminar asistente |
+| GET | `/api/api/v1/asistentes/rut/{rut}` | Obtener asistente por RUT |
+| GET | `/api/api/v1/eventos` | Listar eventos (proxy a Aforo) |
+| GET | `/api/api/v1/eventos/{id}/secciones` | Listar secciones de evento (proxy gRPC) |
+| POST | `/api/api/v1/ventas` | Vender entrada (valida stock en Aforo) |
+| GET | `/api/api/v1/ventas` | Listar ventas |
+| GET | `/api/api/v1/ventas/{id}` | Obtener venta por ID |
+| DELETE | `/api/api/v1/ventas/{id}` | Anular venta (libera aforo) |
 
 ### Servicio gRPC Aforo (puerto 50051)
 
@@ -99,7 +107,7 @@ Este proyecto fue desarrollado con asistencia de **GitHub Copilot / Claude (open
 | Req | Descripción | Estado |
 |-----|-------------|--------|
 | T1 | Todo dockerizado (`docker compose up`) | ✅ |
-| T2 | API REST versionada (`/v1`) | ✅ |
+| T2 | API REST versionada (`/api/v1`) | ✅ |
 | T3 | Contratos explícitos (OpenAPI + `.proto`) | ✅ |
 | T4 | Servicio gRPC interno con Protobuf | ✅ |
 | T5 | Base de datos por servicio | ✅ |

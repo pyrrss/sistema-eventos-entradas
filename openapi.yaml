@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: API REST pública para gestión de asistentes y ventas de entradas. Comunica internamente con servicio gRPC de Aforo.
 servers:
-  - url: http://localhost:8002/v1
+  - url: http://localhost:8002/api/v1
     description: Servidor de desarrollo
 components:
   securitySchemes:

@@ -21,7 +21,9 @@ class AforoClient:
         self._stub = None
 
     def _get_stub(self):
-        if self._channel is None or self._channel._channel._state != grpc.ChannelConnectivity.READY:
+        # El canal de gRPC se reconecta solo ante fallos transitorios;
+        # no inspeccionar atributos privados del channel.
+        if self._stub is None:
             self._channel = grpc.insecure_channel(AFORO_TARGET)
             self._stub = aforo_pb2_grpc.AforoServiceStub(self._channel)
         return self._stub
@@ -42,6 +44,15 @@ class AforoClient:
             return stub.ListSecciones(request, timeout=GRPC_TIMEOUT)
         except grpc.RpcError as e:
             logger.error(f"gRPC ListSecciones error: {e.code()} - {e.details()}")
+            raise
+
+    def list_eventos(self):
+        stub = self._get_stub()
+        request = aforo_pb2.ListEventosRequest()
+        try:
+            return stub.ListEventos(request, timeout=GRPC_TIMEOUT)
+        except grpc.RpcError as e:
+            logger.error(f"gRPC ListEventos error: {e.code()} - {e.details()}")
             raise
 
     def vender_entrada(self, seccion_id: str, cantidad: int):
