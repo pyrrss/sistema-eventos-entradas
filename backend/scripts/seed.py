@@ -102,12 +102,8 @@ def seed_ventas():
     conn = psycopg2.connect(DB_VENTAS)
     cur = conn.cursor()
 
-    # API Key (por si no existe)
-    cur.execute("""
-        INSERT INTO api_key (key, nombre, activo) VALUES ('dev-key-123', 'Desarrollo', TRUE)
-        ON CONFLICT (key) DO NOTHING
-    """)
-    print("  API Key: dev-key-123")
+    # Las API keys ya las siembra schema.sql (con su SHA-256) en el init de la DB.
+    # Aquí solo creamos asistentes de prueba.
 
     # Asistentes de prueba
     asistentes = [
@@ -163,11 +159,11 @@ def verify_data():
     # Ventas
     conn = psycopg2.connect(DB_VENTAS)
     cur = conn.cursor()
-    cur.execute("SELECT key, nombre FROM api_key")
+    cur.execute("SELECT nombre, rol, activo FROM api_key")
     keys = cur.fetchall()
     print(f"\nAPI Keys: {len(keys)}")
     for k in keys:
-        print(f"  {k[0]} - {k[1]}")
+        print(f"  {k[0]} — rol: {k[1]}, activo: {k[2]}")
 
     cur.execute("SELECT asistente_id, rut, nombre_completo FROM asistente")
     asistentes = cur.fetchall()

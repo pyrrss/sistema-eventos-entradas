@@ -49,6 +49,17 @@ services:
       db_aforo:
         condition: service_healthy
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]  # cache: sin persistencia
+    ports:
+      - "6379:6379"  # expuesto solo para inspeccionar en dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
   venta-entradas:
     build: ./backend/venta-entradas
     container_name: venta-entradas
@@ -58,8 +69,12 @@ services:
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"]
     volumes:
       - ./backend/venta-entradas:/app  # Opcional: Para Hot-Reload
+    environment:
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       db_ventas:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:

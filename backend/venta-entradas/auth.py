@@ -10,7 +10,7 @@ from database import get_db
 
 logger = logging.getLogger(__name__)
 
-API_KEY_HEADER = APIKeyHeader(name="X-API-KEY", auto_error= False)
+API_KEY_HEADER = APIKeyHeader(name="X-API-KEY", auto_error=False, scheme_name="ApiKeyAuth")
 
 ROL_ADMIN = "admin"
 ROL_LECTURA = "lectura"
@@ -53,8 +53,9 @@ def verify_api_key(
 def require_admin(registro:models.ApiKey = Depends(verify_api_key)) -> models.ApiKey:
     """Autoriza operaciones de escritura: exige rol admin, sino 403."""
     if registro.rol != ROL_ADMIN:
-        logger.waning("Autorización denegada: rol '%s' intentó escribir", registro.nombre, registro.rol)
+        logger.warning("Autorización denegada: '%s' con rol '%s' intentó escribir", registro.nombre, registro.rol)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="La API Key no tiene permiso para esta operación",
         )
+    return registro

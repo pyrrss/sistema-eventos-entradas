@@ -1,247 +1,85 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Microservicio Venta Entradas
   version: 1.0.0
-  description: API REST pública para gestión de asistentes y ventas de entradas. Comunica internamente con servicio gRPC de Aforo.
+  description: 'API REST pública para gestión de asistentes y ventas de entradas. Comunica internamente con el servicio gRPC
+    de Aforo.
+
+
+    **Este archivo se genera desde el spec vivo** (`GET /api/v1/openapi.json`) y recibe curaduría manual: `servers`, descripciones
+    de negocio y la documentación del header `Idempotency-Key`. Al cambiar la API: declarar `responses={}` en los decoradores
+    de main.py, reiniciar el servicio y volver a ejecutar `scripts/export-openapi.sh`.'
 servers:
   - url: http://localhost:8002/api/v1
-    description: Servidor de desarrollo
-components:
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
-      description: API Key para autenticación. Ejemplo: dev-key-123
-  schemas:
-    AsistenteCreate:
-      type: object
-      required:
-        - rut
-        - nombre_completo
-        - email
-      properties:
-        rut:
-          type: string
-          maxLength: 20
-          description: RUT chileno con guion (ej. 12.345.678-9)
-        nombre_completo:
-          type: string
-          maxLength: 200
-        email:
-          type: string
-          format: email
-    AsistenteUpdate:
-      type: object
-      required:
-        - nombre_completo
-        - email
-      properties:
-        nombre_completo:
-          type: string
-          maxLength: 200
-        email:
-          type: string
-          format: email
-    AsistenteResponse:
-      type: object
-      properties:
-        asistente_id:
-          type: string
-          format: uuid
-        rut:
-          type: string
-        nombre_completo:
-          type: string
-        email:
-          type: string
-          format: email
-        fecha_registro:
-          type: string
-          format: date-time
-    VentaCreate:
-      type: object
-      required:
-        - asistente_id
-        - id_seccion_aforo
-        - nombre_evento
-        - nombre_seccion
-        - cantidad
-      properties:
-        asistente_id:
-          type: string
-          format: uuid
-        id_seccion_aforo:
-          type: string
-          format: uuid
-        nombre_evento:
-          type: string
-          maxLength: 200
-        nombre_seccion:
-          type: string
-          maxLength: 200
-        cantidad:
-          type: integer
-          minimum: 1
-        estado:
-          type: string
-          enum:
-            - VENDIDA
-            - ANULADA
-          default: VENDIDA
-    VentaResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        venta_id:
-          type: string
-          format: uuid
-        asistente_id:
-          type: string
-          format: uuid
-        asistente_nombre:
-          type: string
-          nullable: true
-        id_seccion_aforo:
-          type: string
-          format: uuid
-        nombre_evento:
-          type: string
-        evento_nombre:
-          type: string
-          nullable: true
-        nombre_seccion:
-          type: string
-        seccion_nombre:
-          type: string
-          nullable: true
-        cantidad:
-          type: integer
-        estado:
-          type: string
-        fecha_venta:
-          type: string
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
-    EventoResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        nombre:
-          type: string
-        nombre_lugar:
-          type: string
-        fecha_evento:
-          type: string
-    SeccionResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        nombre:
-          type: string
-        disponibles:
-          type: integer
-        total:
-          type: integer
-    HTTPValidationError:
-      type: object
-      properties:
-        detail:
-          type: array
-          items:
-            $ref: '#/components/schemas/ValidationError'
-    ValidationError:
-      type: object
-      required:
-        - loc
-        - msg
-        - type
-      properties:
-        loc:
-          type: array
-          items:
-            type: string
-        msg:
-          type: string
-        type:
-          type: string
-security:
-  - ApiKeyAuth: []
+    description: Servidor de desarrollo (Docker Compose)
 paths:
-  /health:
+  /api/v1/health:
     get:
-      summary: Health check
-      operationId: health_health_get
+      summary: Health
+      operationId: health_api_v1_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      description: 'Sin autenticación, a propósito: permite sondear sin credenciales.'
+  /api/v1/asistentes:
+    get:
+      summary: Obtener Asistentes
+      operationId: obtener_asistentes_api_v1_asistentes_get
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  version:
-                    type: string
-  /asistentes:
-    post:
-      summary: Crear asistente
-      operationId: crear_asistente_asistentes_post
+                items:
+                  $ref: '#/components/schemas/AsistenteResponse'
+                type: array
+                title: Response Obtener Asistentes Api V1 Asistentes Get
+        '401':
+          description: API Key inválida o faltante
+        '403':
+          description: API Key revocada
       security:
         - ApiKeyAuth: []
+      description: Primeras 50 filas. Devuelve [] si no hay asistentes.
+    post:
+      summary: Crear Asistente
+      operationId: crear_asistente_api_v1_asistentes_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AsistenteCreate'
+        required: true
       responses:
         '201':
-          description: Asistente creado
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AsistenteResponse'
         '400':
-          description: RUT ya registrado
+          description: El RUT ya está registrado
+        '401':
+          description: API Key inválida o faltante
+        '403':
+          description: API Key revocada o sin permisos (se requiere rol admin)
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  detail:
-                    type: string
-        '401':
-          description: API Key inválida o faltante
-    get:
-      summary: Listar asistentes
-      operationId: obtener_asistentes_asistentes_get
+                $ref: '#/components/schemas/HTTPValidationError'
       security:
         - ApiKeyAuth: []
-      responses:
-        '200':
-          description: Lista de asistentes
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AsistenteResponse'
-        '401':
-          description: API Key inválida o faltante
-  /asistentes/{asistente_id}:
+      description: El RUT es único; si ya existe responde 400. Requiere rol admin.
+  /api/v1/asistentes/{asistente_id}:
     get:
-      summary: Obtener asistente por ID
-      operationId: obtener_asistente_uuid_asistentes__asistente_id__get
+      summary: Obtener Asistente Uuid
+      operationId: obtener_asistente_uuid_api_v1_asistentes__asistente_id__get
       security:
         - ApiKeyAuth: []
       parameters:
@@ -251,20 +89,29 @@ paths:
           schema:
             type: string
             format: uuid
+            title: Asistente Id
       responses:
         '200':
-          description: Asistente encontrado
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AsistenteResponse'
-        '404':
-          description: Asistente no encontrado
         '401':
           description: API Key inválida o faltante
+        '403':
+          description: API Key revocada
+        '404':
+          description: El asistente no existe
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
     delete:
-      summary: Eliminar asistente
-      operationId: eliminar_asistente_asistentes__asistente_id__delete
+      summary: Eliminar Asistente
+      operationId: eliminar_asistente_api_v1_asistentes__asistente_id__delete
       security:
         - ApiKeyAuth: []
       parameters:
@@ -274,16 +121,26 @@ paths:
           schema:
             type: string
             format: uuid
+            title: Asistente Id
       responses:
         '204':
-          description: Asistente eliminado
-        '404':
-          description: Asistente no encontrado
+          description: Successful Response
         '401':
           description: API Key inválida o faltante
+        '403':
+          description: API Key revocada o sin permisos (se requiere rol admin)
+        '404':
+          description: El asistente no existe
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      description: Elimina también sus ventas (cascada). La UI no expone esta operación a propósito. Requiere rol admin.
     put:
-      summary: Actualizar asistente
-      operationId: actualizar_asistente_asistentes__asistente_id__put
+      summary: Actualizar Asistente
+      operationId: actualizar_asistente_api_v1_asistentes__asistente_id__put
       security:
         - ApiKeyAuth: []
       parameters:
@@ -293,6 +150,7 @@ paths:
           schema:
             type: string
             format: uuid
+            title: Asistente Id
       requestBody:
         required: true
         content:
@@ -301,19 +159,28 @@ paths:
               $ref: '#/components/schemas/AsistenteUpdate'
       responses:
         '200':
-          description: Asistente actualizado
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AsistenteResponse'
-        '404':
-          description: Asistente no encontrado
         '401':
           description: API Key inválida o faltante
-  /asistentes/rut/{rut}:
+        '403':
+          description: API Key revocada o sin permisos (se requiere rol admin)
+        '404':
+          description: El asistente no existe
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      description: Actualiza nombre_completo y email. El RUT no se modifica. Requiere rol admin.
+  /api/v1/asistentes/rut/{rut}:
     get:
-      summary: Obtener asistente por RUT
-      operationId: obtener_asistente_por_rut_asistentes_rut__rut__get
+      summary: Obtener Asistente Por Rut
+      operationId: obtener_asistente_por_rut_api_v1_asistentes_rut__rut__get
       security:
         - ApiKeyAuth: []
       parameters:
@@ -322,40 +189,55 @@ paths:
           required: true
           schema:
             type: string
+            title: Rut
       responses:
         '200':
-          description: Asistente encontrado
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AsistenteResponse'
-        '404':
-          description: Asistente no encontrado
         '401':
           description: API Key inválida o faltante
-  /eventos:
-    get:
-      summary: Listar eventos (proxy a Aforo)
-      operationId: listar_eventos_eventos_get
-      security:
-        - ApiKeyAuth: []
-      responses:
-        '200':
-          description: Lista de eventos
+        '403':
+          description: API Key revocada
+        '404':
+          description: No se encontró un asistente con ese RUT
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                type: array
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/eventos:
+    get:
+      summary: Listar Eventos
+      operationId: listar_eventos_api_v1_eventos_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
                 items:
                   $ref: '#/components/schemas/EventoResponse'
+                type: array
+                title: Response Listar Eventos Api V1 Eventos Get
         '401':
           description: API Key inválida o faltante
+        '403':
+          description: API Key revocada
+        '503':
+          description: Servicio de Aforo no disponible
         '500':
           description: Error consultando eventos
-  /eventos/{evento_id}/secciones:
+      security:
+        - ApiKeyAuth: []
+      description: Servido desde caché Redis cuando está tibio (TTL 60 s).
+  /api/v1/eventos/{evento_id}/secciones:
     get:
-      summary: Listar secciones de un evento (proxy a Aforo gRPC)
-      operationId: listar_secciones_evento_eventos__evento_id__secciones_get
+      summary: Listar Secciones Evento
+      operationId: listar_secciones_evento_api_v1_eventos__evento_id__secciones_get
       security:
         - ApiKeyAuth: []
       parameters:
@@ -365,27 +247,53 @@ paths:
           schema:
             type: string
             format: uuid
+            title: Evento Id
       responses:
         '200':
-          description: Lista de secciones
+          description: Successful Response
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/SeccionResponse'
+                title: Response Listar Secciones Evento Api V1 Eventos  Evento Id  Secciones Get
         '401':
           description: API Key inválida o faltante
+        '403':
+          description: API Key revocada
         '404':
           description: Evento no encontrado en Aforo
         '503':
           description: Servicio de Aforo no disponible
-  /ventas:
+        '500':
+          description: Error consultando secciones
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      description: Incluye disponibilidad. TTL 15 s; la caché se invalida al vender/anular.
+  /api/v1/ventas:
     post:
-      summary: Vender entrada (valida disponibilidad en Aforo vía gRPC)
-      operationId: crear_venta_ventas_post
+      summary: Crear Venta
+      operationId: crear_venta_api_v1_ventas_post
       security:
         - ApiKeyAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            anyOf:
+              - type: string
+              - type: 'null'
+            title: Idempotency-Key
+          description: 'UUID opcional que identifica el INTENTO de venta (el cliente lo genera al abrir el modal, no por clic).
+            El candado se scopea por API key: un retry con la misma clave y mismo payload replayea la venta original (mismo
+            venta_id, stock afectado una sola vez); misma clave con payload distinto -> 422; clave aún en procesamiento ->
+            409. Sin cabecera -> sin deduplicación.'
       requestBody:
         required: true
         content:
@@ -394,43 +302,53 @@ paths:
               $ref: '#/components/schemas/VentaCreate'
       responses:
         '201':
-          description: Venta registrada
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/VentaResponse'
         '400':
-          description: Error en datos o servicio Aforo
+          description: Error en datos o servicio de Aforo
         '401':
           description: API Key inválida o faltante
+        '403':
+          description: API Key revocada o sin permiso de escritura
         '404':
           description: Asistente no encontrado
         '409':
-          description: No hay entradas disponibles (stock insuficiente)
+          description: Stock insuficiente, o una venta con esa Idempotency-Key está en procesamiento
+        '422':
+          description: Validación, o la Idempotency-Key fue reutilizada con otro payload
         '503':
           description: Servicio de Aforo no disponible
         '504':
           description: Timeout consultando servicio de Aforo
+      description: Valida y descuenta stock en Aforo vía gRPC ANTES de registrar la venta. El estado lo asigna el servidor
+        (VENDIDA). Requiere rol admin.
     get:
-      summary: Listar ventas
-      operationId: listar_ventas_ventas_get
+      summary: Listar Ventas
+      operationId: listar_ventas_api_v1_ventas_get
       security:
         - ApiKeyAuth: []
       responses:
         '200':
-          description: Lista de ventas
+          description: Successful Response
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/VentaResponse'
+                title: Response Listar Ventas Api V1 Ventas Get
         '401':
           description: API Key inválida o faltante
-  /ventas/{venta_id}:
+        '403':
+          description: API Key revocada
+      description: Más recientes primero, hasta 100.
+  /api/v1/ventas/{venta_id}:
     get:
-      summary: Obtener venta por ID
-      operationId: obtener_venta_ventas__venta_id__get
+      summary: Obtener Venta
+      operationId: obtener_venta_api_v1_ventas__venta_id__get
       security:
         - ApiKeyAuth: []
       parameters:
@@ -440,20 +358,29 @@ paths:
           schema:
             type: string
             format: uuid
+            title: Venta Id
       responses:
         '200':
-          description: Venta encontrada
+          description: Successful Response
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/VentaResponse'
+        '401':
+          description: API Key inválida o faltante
+        '403':
+          description: API Key revocada
         '404':
           description: Venta no encontrada
-        '401':
-          description: API Key inválida o faltante
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
     delete:
-      summary: Anular venta (libera aforo vía gRPC)
-      operationId: anular_venta_ventas__venta_id__delete
+      summary: Anular Venta
+      operationId: anular_venta_api_v1_ventas__venta_id__delete
       security:
         - ApiKeyAuth: []
       parameters:
@@ -463,20 +390,278 @@ paths:
           schema:
             type: string
             format: uuid
+            title: Venta Id
       responses:
         '200':
-          description: Venta anulada
+          description: Successful Response
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/VentaResponse'
+              schema: {}
         '400':
-          description: Venta ya anulada o error en Aforo
+          description: La venta ya está anulada, o error en Aforo
         '401':
           description: API Key inválida o faltante
+        '403':
+          description: API Key revocada o sin permisos (se requiere rol admin)
         '404':
           description: Venta no encontrada
         '503':
           description: Servicio de Aforo no disponible
         '504':
           description: Timeout consultando servicio de Aforo
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      description: Devuelve las entradas a Aforo vía gRPC y marca ANULADA. Solo sobre ventas VENDIDA. Requiere rol admin.
+components:
+  schemas:
+    AsistenteCreate:
+      properties:
+        rut:
+          type: string
+          maxLength: 20
+          title: Rut
+          description: RUT chileno con guion
+        nombre_completo:
+          type: string
+          maxLength: 200
+          title: Nombre Completo
+        email:
+          type: string
+          format: email
+          title: Email
+      type: object
+      required:
+        - rut
+        - nombre_completo
+        - email
+      title: AsistenteCreate
+    AsistenteResponse:
+      properties:
+        asistente_id:
+          type: string
+          format: uuid
+          title: Asistente Id
+        rut:
+          type: string
+          title: Rut
+        nombre_completo:
+          type: string
+          title: Nombre Completo
+        email:
+          type: string
+          format: email
+          title: Email
+        fecha_registro:
+          type: string
+          format: date-time
+          title: Fecha Registro
+      type: object
+      required:
+        - asistente_id
+        - rut
+        - nombre_completo
+        - email
+        - fecha_registro
+      title: AsistenteResponse
+    AsistenteUpdate:
+      properties:
+        nombre_completo:
+          type: string
+          maxLength: 200
+          title: Nombre Completo
+        email:
+          type: string
+          format: email
+          title: Email
+      type: object
+      required:
+        - nombre_completo
+        - email
+      title: AsistenteUpdate
+    EventoResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        nombre:
+          type: string
+          title: Nombre
+        nombre_lugar:
+          type: string
+          title: Nombre Lugar
+        fecha_evento:
+          type: string
+          title: Fecha Evento
+      type: object
+      required:
+        - id
+        - nombre
+        - nombre_lugar
+        - fecha_evento
+      title: EventoResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    SeccionResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        nombre:
+          type: string
+          title: Nombre
+        disponibles:
+          type: integer
+          title: Disponibles
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+        - id
+        - nombre
+        - disponibles
+        - total
+      title: SeccionResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+        - loc
+        - msg
+        - type
+      title: ValidationError
+    VentaCreate:
+      properties:
+        asistente_id:
+          type: string
+          format: uuid
+          title: Asistente Id
+        id_seccion_aforo:
+          type: string
+          format: uuid
+          title: Id Seccion Aforo
+        nombre_evento:
+          type: string
+          maxLength: 200
+          title: Nombre Evento
+        nombre_seccion:
+          type: string
+          maxLength: 200
+          title: Nombre Seccion
+        cantidad:
+          type: integer
+          minimum: 1.0
+          title: Cantidad
+      type: object
+      required:
+        - asistente_id
+        - id_seccion_aforo
+        - nombre_evento
+        - nombre_seccion
+        - cantidad
+      title: VentaCreate
+    VentaResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        venta_id:
+          type: string
+          format: uuid
+          title: Venta Id
+        asistente_id:
+          type: string
+          format: uuid
+          title: Asistente Id
+        asistente_nombre:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Asistente Nombre
+        id_seccion_aforo:
+          type: string
+          format: uuid
+          title: Id Seccion Aforo
+        nombre_evento:
+          type: string
+          title: Nombre Evento
+        evento_nombre:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Evento Nombre
+        nombre_seccion:
+          type: string
+          title: Nombre Seccion
+        seccion_nombre:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Seccion Nombre
+        cantidad:
+          type: integer
+          title: Cantidad
+        estado:
+          type: string
+          title: Estado
+          description: 'Atribuido por el servidor: VENDIDA al crear; ANULADA solo tras DELETE /ventas/{venta_id}.'
+        fecha_venta:
+          type: string
+          format: date-time
+          title: Fecha Venta
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+        - id
+        - venta_id
+        - asistente_id
+        - id_seccion_aforo
+        - nombre_evento
+        - nombre_seccion
+        - cantidad
+        - estado
+        - fecha_venta
+        - created_at
+      title: VentaResponse
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+security:
+  - ApiKeyAuth: []

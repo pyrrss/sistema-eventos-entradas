@@ -10,9 +10,12 @@ CREATE TABLE IF NOT EXISTS api_key (
 );
 
 -- Insert default API key for development
-INSERT INTO api_key (key_hash, nombre, rol) VALUES 
-    ('dev-key-123', 'Desarrollo (admin)', 'admin'),
-    ('dev-read-456', 'Desarrollo (solo lectura)', 'lectura') 
+-- key_hash = SHA-256 de la clave en claro (auth.py hashea la cabecera recibida y busca por hash).
+--   admin   -> 'dev-key-123'
+--   lectura -> 'dev-read-456'
+INSERT INTO api_key (key_hash, nombre, rol) VALUES
+    ('0f11c9ecaecabe613512ae472855ae9cb7d9639bc8c3fe85e0357efbf4739cd4', 'Desarrollo (admin)', 'admin'),
+    ('c9e89e85b0621e6dc8ffa74d85251351bd3977ca582f3587baba2cf40027830a', 'Desarrollo (solo lectura)', 'lectura')
 ON CONFLICT (key_hash) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS asistente (

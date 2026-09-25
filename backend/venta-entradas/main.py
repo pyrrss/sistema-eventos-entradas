@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 
 import aforo_client
 import aforo_pb2
+import cache
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -116,7 +117,12 @@ def health():
 
 # ----------- ASISTENTES -----------
 
-@app.post("/api/v1/asistentes", response_model=AsistenteResponse, status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/api/v1/asistentes",
+    response_model=AsistenteResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={400: {"description": "El RUT ya está registrado"}, 401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada o sin permisos (se requiere rol admin)"}},
+)
 def crear_asistente(asistente: AsistenteCreate, db: Session = Depends(get_db), _: models.ApiKey = Depends(require_admin)):
     db_asistente = db.query(models.Asistente).filter(models.Asistente.rut == asistente.rut).first()
     if db_asistente:
@@ -128,13 +134,21 @@ def crear_asistente(asistente: AsistenteCreate, db: Session = Depends(get_db), _
     return nuevo_asistente
 
 
-@app.get("/api/v1/asistentes", response_model=list[AsistenteResponse])
+@app.get(
+    "/api/v1/asistentes",
+    response_model=list[AsistenteResponse],
+    responses={401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada"}},
+)
 def obtener_asistentes(db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     asistentes = db.query(models.Asistente).offset(0).limit(50).all()
     return asistentes or []
 
 
-@app.get("/api/v1/asistentes/{asistente_id}", response_model=AsistenteResponse)
+@app.get(
+    "/api/v1/asistentes/{asistente_id}",
+    response_model=AsistenteResponse,
+    responses={401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada"}, 404: {"description": "El asistente no existe"}},
+)
 def obtener_asistente_uuid(asistente_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     asistente = db.query(models.Asistente).filter(models.Asistente.asistente_id == asistente_id).first()
     if not asistente:
@@ -142,7 +156,11 @@ def obtener_asistente_uuid(asistente_id: UUID, db: Session = Depends(get_db), _:
     return asistente
 
 
-@app.delete("/api/v1/asistentes/{asistente_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete(
+    "/api/v1/asistentes/{asistente_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada o sin permisos (se requiere rol admin)"}, 404: {"description": "El asistente no existe"}},
+)
 def eliminar_asistente(asistente_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(require_admin)):
     asistente = db.query(models.Asistente).filter(models.Asistente.asistente_id == asistente_id).first()
     if not asistente:
@@ -152,7 +170,11 @@ def eliminar_asistente(asistente_id: UUID, db: Session = Depends(get_db), _: mod
     return None
 
 
-@app.put("/api/v1/asistentes/{asistente_id}", response_model=AsistenteResponse)
+@app.put(
+    "/api/v1/asistentes/{asistente_id}",
+    response_model=AsistenteResponse,
+    responses={401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada o sin permisos (se requiere rol admin)"}, 404: {"description": "El asistente no existe"}},
+)
 def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteUpdate, db: Session = Depends(get_db), _: models.ApiKey = Depends(require_admin)):
     asistente_db = db.query(models.Asistente).filter(models.Asistente.asistente_id == asistente_id).first()
     if not asistente_db:
@@ -164,7 +186,11 @@ def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteUpdate
     return asistente_db
 
 
-@app.get("/api/v1/asistentes/rut/{rut}", response_model=AsistenteResponse)
+@app.get(
+    "/api/v1/asistentes/rut/{rut}",
+    response_model=AsistenteResponse,
+    responses={401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada"}, 404: {"description": "No se encontró un asistente con ese RUT"}},
+)
 def obtener_asistente_por_rut(rut: str, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     asistente = db.query(models.Asistente).filter(models.Asistente.rut == rut).first()
     if not asistente:
@@ -172,20 +198,29 @@ def obtener_asistente_por_rut(rut: str, db: Session = Depends(get_db), _: models
     return asistente
 
 
-# ----------- EVENTOS Y SECCIONES (Proxy a gRPC Aforo) -----------
+# ----------- EVENTOS Y SECCIONES (comunicación con Aforo mediante grpc) -----------
 
-@app.get("/api/v1/eventos", response_model=list[EventoResponse])
+@app.get(
+    "/api/v1/eventos",
+    response_model=list[EventoResponse],
+    responses={401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada"}, 503: {"description": "Servicio de Aforo no disponible"}, 500: {"description": "Error consultando eventos"}},
+)
 def listar_eventos(_: models.ApiKey = Depends(verify_api_key)):
+    cached = cache.get("catalogo:eventos")
+    if cached is not None:
+        return cached
     try:
         response = aforo_client.aforo_client.list_eventos()
-        return [
+        eventos = [
             EventoResponse(
                 id=UUID(e.evento_id),
                 nombre=e.nombre_evento,
                 nombre_lugar=e.nombre_lugar,
                 fecha_evento=e.fecha_evento
-            ) for e in response.eventos
+            ).model_dump(mode="json") for e in response.eventos
         ]
+        cache.set_json("catalogo:eventos", eventos, cache.TTL_EVENTOS)
+        return eventos
     except grpc.RpcError as e:
         logger.error(f"gRPC error listando eventos: {e.code()} - {e.details()}")
         if e.code() == grpc.StatusCode.UNAVAILABLE:
@@ -193,20 +228,30 @@ def listar_eventos(_: models.ApiKey = Depends(verify_api_key)):
         raise HTTPException(status_code=500, detail="Error consultando eventos")
 
 
-@app.get("/api/v1/eventos/{evento_id}/secciones", response_model=list[SeccionResponse])
+@app.get(
+    "/api/v1/eventos/{evento_id}/secciones",
+    response_model=list[SeccionResponse],
+    responses={401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada"}, 404: {"description": "Evento no encontrado en Aforo"}, 503: {"description": "Servicio de Aforo no disponible"}, 500: {"description": "Error consultando secciones"}},
+)
 def listar_secciones_evento(evento_id: UUID, _: models.ApiKey = Depends(verify_api_key)):
+    clave = f"catalogo:secciones:{evento_id}"
+    cached = cache.get(clave)
+    if cached is not None:
+        return cached
     try:
         response = aforo_client.aforo_client.list_secciones(str(evento_id))
         if not response.evento_existe:
             raise HTTPException(status_code=404, detail="Evento no encontrado en Aforo")
-        return [
+        secciones = [
             SeccionResponse(
                 id=UUID(s.seccion_id),
                 nombre=s.nombre_seccion,
                 disponibles=s.cantidad_entradas_disponibles,
                 total=s.capacidad_total
-            ) for s in response.secciones
+            ).model_dump(mode="json") for s in response.secciones
         ]
+        cache.set_json(clave, secciones, cache.TTL_SECCIONES)
+        return secciones
     except grpc.RpcError as e:
         logger.error(f"gRPC error listando secciones: {e.code()} - {e.details()}")
         if e.code() == grpc.StatusCode.UNAVAILABLE:
@@ -216,11 +261,25 @@ def listar_secciones_evento(evento_id: UUID, _: models.ApiKey = Depends(verify_a
 
 # ----------- VENTAS -----------
 
-@app.post("/api/v1/ventas", response_model=VentaResponse, status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/api/v1/ventas",
+    response_model=VentaResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        400: {"description": "Error en datos o servicio de Aforo"},
+        401: {"description": "API Key inválida o faltante"},
+        403: {"description": "API Key revocada o sin permiso de escritura"},
+        404: {"description": "Asistente no encontrado"},
+        409: {"description": "Stock insuficiente, o una venta con esa Idempotency-Key está en procesamiento"},
+        422: {"description": "Validación, o la Idempotency-Key fue reutilizada con otro payload"},
+        503: {"description": "Servicio de Aforo no disponible"},
+        504: {"description": "Timeout consultando servicio de Aforo"},
+    },
+)
 def crear_venta(
     venta: VentaCreate,
     db: Session = Depends(get_db),
-    _: models.ApiKey = Depends(require_admin),
+    registro: models.ApiKey = Depends(require_admin),
     idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
 ):
     asistente = db.query(models.Asistente).filter(models.Asistente.asistente_id == venta.asistente_id).first()
@@ -231,15 +290,18 @@ def crear_venta(
     candado = None
 
     if idempotency_key:
-        candado = models.Idempotencia(clave=idempotency_key, hash_body=hash_body)
+        # El candado se scopea por cliente: dos API keys distintas que reenvíen el
+        # mismo UUID no comparten candado (impossible replay cross-client).
+        clave_idem = hashlib.sha256(f"{registro.key_hash}:{idempotency_key}".encode()).hexdigest()
+        candado = models.Idempotencia(clave=clave_idem, hash_body=hash_body)
         db.add(candado)
         try:
             # Postgres bloquea aquí si otro request tiene la misma clave sin commitear.
             db.flush()
         except IntegrityError:
-            # Clave duplicada: es un retry del mismo intento lógico.
+            # clave duplicada: es un retry del mismo intento lógico.
             db.rollback()
-            previo = db.query(models.Idempotencia).filter(models.Idempotencia.clave == idempotency_key).first()
+            previo = db.query(models.Idempotencia).filter(models.Idempotencia.clave == clave_idem).first()
             if previo is None:
                 # El ganador abortó justo ahora; la clave quedó libre.
                 raise HTTPException(status_code=409, detail="Venta duplicada abortada; reintente.")
@@ -282,16 +344,27 @@ def crear_venta(
         candado.venta_id = nueva_venta.venta_id
     db.commit()
     db.refresh(nueva_venta)
+    # stock en Aforo cambio, se invalida cache de secciones para que
+    # proxima lectura cachee stock actualizado
+    cache.delete_pattern("catalogo:secciones:*")
     return nueva_venta
 
 
-@app.get("/api/v1/ventas", response_model=list[VentaResponse])
+@app.get(
+    "/api/v1/ventas",
+    response_model=list[VentaResponse],
+    responses={401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada"}},
+)
 def listar_ventas(db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     ventas = db.query(models.Venta).order_by(models.Venta.fecha_venta.desc()).limit(100).all()
     return ventas or []
 
 
-@app.get("/api/v1/ventas/{venta_id}", response_model=VentaResponse)
+@app.get(
+    "/api/v1/ventas/{venta_id}",
+    response_model=VentaResponse,
+    responses={401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada"}, 404: {"description": "Venta no encontrada"}},
+)
 def obtener_venta(venta_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     venta = db.query(models.Venta).filter(models.Venta.venta_id == venta_id).first()
     if not venta:
@@ -299,7 +372,18 @@ def obtener_venta(venta_id: UUID, db: Session = Depends(get_db), _: models.ApiKe
     return venta
 
 
-@app.delete("/api/v1/ventas/{venta_id}", status_code=status.HTTP_200_OK)
+@app.delete(
+    "/api/v1/ventas/{venta_id}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        400: {"description": "La venta ya está anulada, o error en Aforo"},
+        401: {"description": "API Key inválida o faltante"},
+        403: {"description": "API Key revocada o sin permisos (se requiere rol admin)"},
+        404: {"description": "Venta no encontrada"},
+        503: {"description": "Servicio de Aforo no disponible"},
+        504: {"description": "Timeout consultando servicio de Aforo"},
+    },
+)
 def anular_venta(venta_id: UUID, db: Session = Depends(get_db), _: models.ApiKey = Depends(require_admin)):
     venta = db.query(models.Venta).filter(models.Venta.venta_id == venta_id).first()
     if not venta:
@@ -323,4 +407,5 @@ def anular_venta(venta_id: UUID, db: Session = Depends(get_db), _: models.ApiKey
     venta.estado = 'ANULADA'
     db.commit()
     db.refresh(venta)
+    cache.delete_pattern("catalogo:secciones:*")
     return venta

@@ -18,7 +18,7 @@ async function request(path, options = {}) {
             ...rest,
             headers: { 
                 'Content-Type': 'application/json',
-                'X-API-Key': API_KEY,
+                'X-API-KEY': API_KEY,
                 ...(headers || {}),
             },
         });
