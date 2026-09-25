@@ -1,10 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
-# from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 import models
 from database import engine, get_db
-#SessionLocal
 from datetime import datetime
 from auth import verify_api_key, require_admin
 from pydantic import BaseModel, Field, EmailStr
@@ -36,36 +34,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-#def get_db():
-#    db = SessionLocal()
-#    try:
-#        yield db
-#    finally:
-#        db.close()
-
-
-#def verify_api_key(api_key: str = Depends(API_KEY_HEADER), db: Session = Depends(get_db)):
-#    if not api_key:
-#        raise HTTPException(
-#            status_code=status.HTTP_401_UNAUTHORIZED,
-#            detail="API Key requerida",
-#            headers={"WWW-Authenticate": "APIKey"},
-#        )
-#    key_record = db.query(models.ApiKey).filter(models.ApiKey.key == api_key, models.ApiKey.activo == True).first()
-#    if not key_record:
-#        raise HTTPException(
-#            status_code=status.HTTP_401_UNAUTHORIZED,
-#            detail="API Key inválida o inactiva",
-#            headers={"WWW-Authenticate": "APIKey"},
-#        )
-#    return key_record
-
 
 @app.on_event("shutdown")
 def shutdown_event():
