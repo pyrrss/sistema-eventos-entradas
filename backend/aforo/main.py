@@ -3,6 +3,8 @@ from concurrent import futures
 import logging
 import uuid
 
+from sqlalchemy import update
+
 import aforo_pb2
 import aforo_pb2_grpc
 
@@ -70,21 +72,37 @@ class AforoService(aforo_pb2_grpc.AforoServiceServicer):
     def VenderEntrada(self, request, context):
         db = SessionLocal()
         try:
-            seccion = db.query(Seccion).filter(Seccion.seccion_id == uuid.UUID(request.seccion_id)).first()
-            if not seccion:
+            sid = uuid.UUID(request.seccion_id)
+            if request.cantidad < 1:
                 return aforo_pb2.VenderEntradaResponse(
                     exito=False,
-                    mensaje="Sección no encontrada",
+                    mensaje="Cantidad debe ser >= 1",
                     disponibles_restantes=0
                 )
-            if seccion.cantidad_entradas_disponibles < request.cantidad:
+            # Chequeo + descuento atómicos en una sola sentencia: Postgres
+            # re-evalúa el WHERE tras el lock de la fila, así dos ventas
+            # concurrentes no pueden sobreventer (ni perder stock con 0/negativos).
+            res = db.execute(
+                update(Seccion)
+                .where(Seccion.seccion_id == sid,
+                       Seccion.cantidad_entradas_disponibles >= request.cantidad)
+                .values(cantidad_entradas_disponibles=Seccion.cantidad_entradas_disponibles - request.cantidad)
+            )
+            if res.rowcount == 0:
+                seccion = db.query(Seccion).filter(Seccion.seccion_id == sid).first()
+                if seccion is None:
+                    return aforo_pb2.VenderEntradaResponse(
+                        exito=False,
+                        mensaje="Sección no encontrada",
+                        disponibles_restantes=0
+                    )
                 return aforo_pb2.VenderEntradaResponse(
                     exito=False,
                     mensaje=f"Stock insuficiente. Disponibles: {seccion.cantidad_entradas_disponibles}",
                     disponibles_restantes=seccion.cantidad_entradas_disponibles
                 )
-            seccion.cantidad_entradas_disponibles -= request.cantidad
             db.commit()
+            seccion = db.query(Seccion).filter(Seccion.seccion_id == sid).first()
             return aforo_pb2.VenderEntradaResponse(
                 exito=True,
                 mensaje="Venta registrada",
@@ -104,21 +122,37 @@ class AforoService(aforo_pb2_grpc.AforoServiceServicer):
     def AnularEntrada(self, request, context):
         db = SessionLocal()
         try:
-            seccion = db.query(Seccion).filter(Seccion.seccion_id == uuid.UUID(request.seccion_id)).first()
-            if not seccion:
+            sid = uuid.UUID(request.seccion_id)
+            if request.cantidad < 1:
                 return aforo_pb2.AnularEntradaResponse(
                     exito=False,
-                    mensaje="Sección no encontrada",
+                    mensaje="Cantidad debe ser >= 1",
                     disponibles_restantes=0
                 )
-            if seccion.cantidad_entradas_disponibles + request.cantidad > seccion.capacidad_total:
+            # Atómico: solo reintegra si el total no excede la capacidad.
+            # Sin esto, una cantidad negativa "anularía" entradas
+            # (robo silencioso de stock).
+            res = db.execute(
+                update(Seccion)
+                .where(Seccion.seccion_id == sid,
+                       (Seccion.cantidad_entradas_disponibles + request.cantidad) <= Seccion.capacidad_total)
+                .values(cantidad_entradas_disponibles=Seccion.cantidad_entradas_disponibles + request.cantidad)
+            )
+            if res.rowcount == 0:
+                seccion = db.query(Seccion).filter(Seccion.seccion_id == sid).first()
+                if seccion is None:
+                    return aforo_pb2.AnularEntradaResponse(
+                        exito=False,
+                        mensaje="Sección no encontrada",
+                        disponibles_restantes=0
+                    )
                 return aforo_pb2.AnularEntradaResponse(
                     exito=False,
                     mensaje=f"No se pueden anular más entradas de las vendidas. Capacidad total: {seccion.capacidad_total}",
                     disponibles_restantes=seccion.cantidad_entradas_disponibles
                 )
-            seccion.cantidad_entradas_disponibles += request.cantidad
             db.commit()
+            seccion = db.query(Seccion).filter(Seccion.seccion_id == sid).first()
             return aforo_pb2.AnularEntradaResponse(
                 exito=True,
                 mensaje="Anulación registrada",

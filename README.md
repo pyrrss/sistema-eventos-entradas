@@ -78,8 +78,17 @@ Credenciales de desarrollo en `docker-compose.yml`.
 
 ## Contratos
 
-- **REST**: `openapi.yaml` (OpenAPI 3.0.3)
-- **gRPC**: `backend/aforo/aforo.proto` (Protobuf 3)
+- **REST**: la fuente de verdad es el spec servido `GET /api/v1/openapi.json`
+  (OpenAPI 3.0.3, generado por `custom_openapi` en `main.py`);
+  `openapi.yaml` es un snapshot documental, no se verifica contra el vivo.
+- **gRPC**: `backend/aforo/aforo.proto` (Protobuf 3).
+
+### Pruebas de contrato
+
+```bash
+docker compose up -d          # suite esencial: gRPC (9) + REST (9) + fuzzing GETs
+./scripts/run-contract-tests.sh
+```
 
 ## Documentación de Decisiones (ADRs)
 

@@ -53,3 +53,7 @@ tmp/
 docs/PENDIENTES.md
 
 .playwright-cli/
+
+# pytest/hypothesis caches
+.hypothesis/
+.pytest_cache/

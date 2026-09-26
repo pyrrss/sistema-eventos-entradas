@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Header
+from fastapi import FastAPI, Depends, HTTPException, status, Header, Path
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import models
@@ -23,10 +23,53 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Microservicio Venta Entradas",
     version="1.0.0",
+    description=("API REST pública para gestión de asistentes y ventas de entradas. "
+                 "Comunica internamente con el servicio gRPC de Aforo."),
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc",
     openapi_url="/api/v1/openapi.json"
 )
+
+
+def _downgrade_node(node):
+    """OpenAPI 3.1 -> 3.0.3: anyOf[..., {type:'null'}] pasa a nullable: true."""
+    if isinstance(node, dict):
+        out = {k: _downgrade_node(v) for k, v in node.items()}
+        anyof = out.get("anyOf")
+        if isinstance(anyof, list):
+            non_null = [s for s in anyof if not (isinstance(s, dict) and s.get("type") == "null")]
+            if len(non_null) != len(anyof) and non_null:
+                out.pop("anyOf")
+                if len(non_null) == 1 and isinstance(non_null[0], dict):
+                    out.update(non_null[0])
+                else:
+                    out["anyOf"] = non_null
+                out["nullable"] = True
+        return out
+    if isinstance(node, list):
+        return [_downgrade_node(x) for x in node]
+    return node
+
+
+def custom_openapi():
+    """Spec servido como OpenAPI 3.0.3 (soporte completo de las herramientas de
+    contrato — schemathesis <4 no soporta 3.1.0 —) con servers explícitos."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    from fastapi.openapi.utils import get_openapi
+    schema = get_openapi(
+        title=app.title, version=app.version, description=app.description,
+        routes=app.routes,
+    )
+    schema = _downgrade_node(schema)
+    schema["openapi"] = "3.0.3"
+    schema["servers"] = [{"url": "http://localhost:8002",
+                          "description": "Desarrollo (Docker Compose)"}]
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = custom_openapi
 
 app.add_middleware(
     CORSMiddleware,
@@ -191,7 +234,7 @@ def actualizar_asistente(asistente_id: UUID, datos_actualizados: AsistenteUpdate
     response_model=AsistenteResponse,
     responses={401: {"description": "API Key inválida o faltante"}, 403: {"description": "API Key revocada"}, 404: {"description": "No se encontró un asistente con ese RUT"}},
 )
-def obtener_asistente_por_rut(rut: str, db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
+def obtener_asistente_por_rut(rut: str = Path(..., max_length=20, pattern=r"^[0-9.kK\-]+$", description="RUT chileno (dígitos, puntos, guion y K; máx 20 como la columna)"), db: Session = Depends(get_db), _: models.ApiKey = Depends(verify_api_key)):
     asistente = db.query(models.Asistente).filter(models.Asistente.rut == rut).first()
     if not asistente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No se encontró a un asistente con el RUT: {rut}")

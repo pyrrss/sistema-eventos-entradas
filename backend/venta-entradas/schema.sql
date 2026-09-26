@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS api_key (
     nombre VARCHAR(100) NOT NULL,
     rol VARCHAR(20) NOT NULL DEFAULT 'lectura' CHECK (rol IN ('admin', 'lectura')),
     activo BOOLEAN NOT NULL DEFAULT TRUE,
-    fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Insert default API key for development
@@ -23,13 +23,13 @@ CREATE TABLE IF NOT EXISTS asistente (
     rut VARCHAR(20)  NOT NULL UNIQUE,
     nombre_completo VARCHAR(200) NOT NULL,
     email VARCHAR(200) NOT NULL,
-    fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS venta (
     venta_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     asistente_id UUID NOT NULL,
-    fecha_venta TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_venta TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     estado VARCHAR(20) NOT NULL CHECK (estado IN ('VENDIDA', 'ANULADA')),
     id_seccion_aforo UUID NOT NULL,
     cantidad INTEGER NOT NULL DEFAULT 1 CHECK (cantidad >= 1),
@@ -47,5 +47,5 @@ CREATE TABLE IF NOT EXISTS idempotencia (
     clave VARCHAR(64) PRIMARY KEY,
     hash_body VARCHAR(64) NOT NULL,
     venta_id UUID,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

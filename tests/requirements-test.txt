@@ -1,0 +1,10 @@
+pytest>=8
+requests>=2.32
+jsonschema>=4.22
+PyYAML>=6
+redis>=5
+psycopg2-binary>=2.9
+grpcio>=1.60
+grpcio-tools>=1.60
+protobuf>=4.25
+schemathesis>=3.38,<4

@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: Microservicio Venta Entradas
   version: 1.0.0
@@ -10,7 +10,7 @@ info:
     de negocio y la documentación del header `Idempotency-Key`. Al cambiar la API: declarar `responses={}` en los decoradores
     de main.py, reiniciar el servicio y volver a ejecutar `scripts/export-openapi.sh`.'
 servers:
-  - url: http://localhost:8002/api/v1
+  - url: http://localhost:8002
     description: Servidor de desarrollo (Docker Compose)
 paths:
   /api/v1/health:
@@ -189,6 +189,9 @@ paths:
           required: true
           schema:
             type: string
+            maxLength: 20
+            pattern: ^[0-9.kK\-]+$
+            description: RUT chileno (dígitos, puntos, guion y K; máx 20 como la columna)
             title: Rut
       responses:
         '200':
@@ -286,10 +289,9 @@ paths:
           in: header
           required: false
           schema:
-            anyOf:
-              - type: string
-              - type: 'null'
             title: Idempotency-Key
+            type: string
+            nullable: true
           description: 'UUID opcional que identifica el INTENTO de venta (el cliente lo genera al abrir el modal, no por clic).
             El candado se scopea por API key: un retry con la misma clave y mismo payload replayea la venta original (mismo
             venta_id, stock afectado una sola vez); misma clave con payload distinto -> 422; clave aún en procesamiento ->
@@ -606,10 +608,9 @@ components:
           format: uuid
           title: Asistente Id
         asistente_nombre:
-          anyOf:
-            - type: string
-            - type: 'null'
           title: Asistente Nombre
+          type: string
+          nullable: true
         id_seccion_aforo:
           type: string
           format: uuid
@@ -618,18 +619,16 @@ components:
           type: string
           title: Nombre Evento
         evento_nombre:
-          anyOf:
-            - type: string
-            - type: 'null'
           title: Evento Nombre
+          type: string
+          nullable: true
         nombre_seccion:
           type: string
           title: Nombre Seccion
         seccion_nombre:
-          anyOf:
-            - type: string
-            - type: 'null'
           title: Seccion Nombre
+          type: string
+          nullable: true
         cantidad:
           type: integer
           title: Cantidad
