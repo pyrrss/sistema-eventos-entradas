@@ -134,6 +134,6 @@ Este proyecto fue desarrollado con asistencia de **GitHub Copilot / Claude (open
 |-----|-------------|--------|
 | O1 | Caché con Redis | ✅ cache-aside del catálogo con invalidación en venta/anulación |
 | O2 | Idempotencia (`Idempotency-Key`) | ✅ en `POST /ventas`, lock en Postgres scopeado por cliente |
-| O3 | HATEOAS | ⏳ pendiente |
+| O3 | HATEOAS | No implementado |
 | O4 | Pruebas de contrato | ✅ suite automatizada (`scripts/run-contract-tests.sh`) |
-| O5 | Segundo cliente gRPC en otro lenguaje | ⏳ pendiente |
+| O5 | Segundo cliente gRPC en otro lenguaje | No implementado |
