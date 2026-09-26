@@ -11,7 +11,7 @@ AFORO_HOST = os.getenv("AFORO_GRPC_HOST", "aforo")
 AFORO_PORT = os.getenv("AFORO_GRPC_PORT", "50051")
 AFORO_TARGET = f"{AFORO_HOST}:{AFORO_PORT}"
 
-GRPC_TIMEOUT = 3.0
+GRPC_TIMEOUT = float(os.getenv("GRPC_TIMEOUT", "3.0"))
 MAX_RETRIES = 1
 
 

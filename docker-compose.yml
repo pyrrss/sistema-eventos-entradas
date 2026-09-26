@@ -45,6 +45,8 @@ services:
     container_name: aforo
     ports:
       - "50051:50051"
+    environment:
+      LATENCIA_MS: ${LATENCIA_MS:-0}  # experimento competencia 6: latencia inyectada (0 = normal)
     depends_on:
       db_aforo:
         condition: service_healthy
@@ -71,6 +73,7 @@ services:
       - ./backend/venta-entradas:/app  # Opcional: Para Hot-Reload
     environment:
       REDIS_URL: redis://redis:6379/0
+      GRPC_TIMEOUT: ${GRPC_TIMEOUT:-3.0}  # experimento competencia 6: timeout del cliente gRPC
     depends_on:
       db_ventas:
         condition: service_healthy

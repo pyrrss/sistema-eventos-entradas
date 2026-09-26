@@ -1,4 +1,6 @@
 import grpc
+import os
+import time
 from concurrent import futures
 import logging
 import uuid
@@ -13,6 +15,10 @@ from models import Evento, Seccion
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Inyección de latencia para el experimento de competencia 6 (docs/experimento.md).
+# LATENCIA_MS=0 (default) => comportamiento normal del servicio.
+LATENCIA_MS = int(os.getenv("LATENCIA_MS", "0"))
 
 
 class AforoService(aforo_pb2_grpc.AforoServiceServicer):
@@ -70,6 +76,8 @@ class AforoService(aforo_pb2_grpc.AforoServiceServicer):
             db.close()
 
     def VenderEntrada(self, request, context):
+        if LATENCIA_MS:
+            time.sleep(LATENCIA_MS / 1000)  # fault injection: simula Aforo lento
         db = SessionLocal()
         try:
             sid = uuid.UUID(request.seccion_id)
